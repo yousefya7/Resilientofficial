@@ -9,7 +9,7 @@ import multer from "multer";
 import path from "path";
 import { randomUUID } from "crypto";
 import { sendOrderConfirmationSms, sendWelcomeSms, blastSms, twilioConfigured } from "./sms";
-import { sendOrderConfirmationEmail, sendShippingEmail, sendCancellationEmail, blastEmail, sendContactEmail, resendConfigured } from "./email";
+import { sendOrderConfirmationEmail, sendShippingEmail, sendCancellationEmail, blastEmail, sendContactEmail, sendContactConfirmationEmail, resendConfigured } from "./email";
 import { createPaymentIntent, createRefund, calculateTaxAmount, createStripeCoupon, deleteStripeCoupon } from "./stripe";
 import { insertPromoCodeSchema } from "@shared/schema";
 
@@ -107,6 +107,27 @@ ${allPages
       res.send(xml);
     } catch (err) {
       res.status(500).send("Error generating sitemap");
+    }
+  });
+
+  app.post("/api/contact", async (req, res) => {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    try {
+      await sendContactEmail(
+        "info@resilientofficial.com",
+        `Contact Form: ${subject} — from ${name} <${email}>`,
+        `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`
+      );
+      if (resendConfigured()) {
+        await sendContactConfirmationEmail(email, name);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[contact form]", err);
+      res.status(500).json({ message: "Failed to send message. Please try again." });
     }
   });
 

@@ -15,6 +15,9 @@ import AdminPage from "@/pages/admin/index";
 import GalleryPage from "@/pages/gallery";
 import DropLock from "@/pages/drop-lock";
 import OrderStatusPage from "@/pages/order-status";
+import ShippingPage from "@/pages/shipping";
+import ReturnsPage from "@/pages/returns";
+import ContactPage from "@/pages/contact";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { AudioProvider } from "@/lib/audio";
@@ -30,6 +33,9 @@ function Router() {
       <Route path="/checkout" component={CheckoutPage} />
       <Route path="/gallery" component={GalleryPage} />
       <Route path="/order-status" component={OrderStatusPage} />
+      <Route path="/shipping" component={ShippingPage} />
+      <Route path="/returns" component={ReturnsPage} />
+      <Route path="/contact" component={ContactPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

@@ -331,9 +331,9 @@ export default function Home() {
             <div>
               <p className="text-xs tracking-luxury uppercase mb-4 font-bold">Info</p>
               <div className="space-y-2">
-                <span className="block text-muted-foreground text-sm">Shipping</span>
-                <span className="block text-muted-foreground text-sm">Returns</span>
-                <span className="block text-muted-foreground text-sm">Contact</span>
+                <Link href="/shipping" className="block text-muted-foreground text-sm hover:text-accent-blue transition-colors" data-testid="link-footer-shipping">Shipping</Link>
+                <Link href="/returns" className="block text-muted-foreground text-sm hover:text-accent-blue transition-colors" data-testid="link-footer-returns">Returns</Link>
+                <Link href="/contact" className="block text-muted-foreground text-sm hover:text-accent-blue transition-colors" data-testid="link-footer-contact">Contact</Link>
               </div>
             </div>
           </div>

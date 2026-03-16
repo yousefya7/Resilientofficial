@@ -527,3 +527,43 @@ export async function sendContactEmail(
   `;
   await sendEmail(to, subject, baseTemplate(content), INFO_EMAIL);
 }
+
+/* ─── CONTACT CONFIRMATION EMAIL ──────────────────────────────────────── */
+export async function sendContactConfirmationEmail(
+  to: string,
+  name: string
+): Promise<void> {
+  const content = `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td style="padding-bottom:20px;">
+          <p style="font-size:15px;line-height:1.8;color:#cccccc;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;">
+            Hi ${name},
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-bottom:20px;">
+          <p style="font-size:15px;line-height:1.8;color:#cccccc;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;">
+            We've received your message and appreciate you reaching out. A member of our team will get back to you within <strong style="color:#ffffff;">24–48 hours</strong>.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-bottom:20px;">
+          <p style="font-size:15px;line-height:1.8;color:#cccccc;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;">
+            In the meantime, feel free to browse the latest drops at <a href="https://resilientofficial.com/shop" style="color:#0080FF;text-decoration:none;">resilientofficial.com</a>.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <p style="font-size:13px;line-height:1.6;color:#666666;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;">
+            — The Resilient Team
+          </p>
+        </td>
+      </tr>
+    </table>
+  `;
+  await sendEmail(to, "We received your message — Resilient Official", baseTemplate(content), INFO_EMAIL);
+}
