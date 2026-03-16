@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
+  PaymentRequestButtonElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -108,12 +109,14 @@ function PaymentForm({
   formData,
   items,
   total,
+  clientSecret,
   onBack,
   onSuccess,
 }: {
   formData: FormData;
   items: ReturnType<typeof useCart>["items"];
   total: number;
+  clientSecret: string;
   onBack: () => void;
   onSuccess: () => void;
 }) {
@@ -122,6 +125,122 @@ function PaymentForm({
   const { toast } = useToast();
   const [paying, setPaying] = useState(false);
   const [ready, setReady] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
+
+  const createOrderRecord = useCallback(async (paymentIntentId: string) => {
+    try {
+      await apiRequest("POST", "/api/orders", {
+        customerEmail: formData.email,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        stripePaymentIntentId: paymentIntentId,
+        items: items.map((item) => ({
+          productId: item.productId,
+          productName: item.name,
+          size: item.size,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        total: total.toFixed(2),
+        shippingAddress: {
+          name: formData.name,
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      onSuccess();
+    } catch (orderErr: any) {
+      const msg: string = orderErr?.message || "";
+      const serverMsg = msg.includes(":") ? msg.split(":").slice(1).join(":").trim() : msg;
+      if (serverMsg.toLowerCase().includes("insufficient stock")) {
+        toast({
+          title: "Item Sold Out",
+          description: serverMsg || "An item in your cart is no longer available.",
+          variant: "destructive",
+        });
+        setPaying(false);
+      } else {
+        console.error("[Checkout] Order creation failed after payment:", orderErr);
+        queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+        onSuccess();
+      }
+    }
+  }, [formData, items, total, onSuccess, toast]);
+
+  useEffect(() => {
+    if (!stripe || !clientSecret) return;
+
+    const pr = stripe.paymentRequest({
+      country: "US",
+      currency: "usd",
+      total: {
+        label: "Resilient",
+        amount: Math.round(total * 100),
+      },
+      requestPayerName: true,
+      requestPayerEmail: true,
+    });
+
+    pr.canMakePayment().then((result: any) => {
+      if (result) setPaymentRequest(pr);
+    });
+
+    pr.on("paymentmethod", async (ev: any) => {
+      setPaying(true);
+      try {
+        const { error, paymentIntent } = await (stripe as any).confirmCardPayment(
+          clientSecret,
+          { payment_method: ev.paymentMethod.id },
+          { handleActions: false }
+        );
+
+        if (error) {
+          ev.complete("fail");
+          toast({
+            title: "Apple Pay Failed",
+            description: error.message || "Payment failed. Please try another method.",
+            variant: "destructive",
+          });
+          setPaying(false);
+          return;
+        }
+
+        ev.complete("success");
+
+        if (paymentIntent.status === "requires_action") {
+          const { error: actionError, paymentIntent: updatedPI } = await (stripe as any).confirmCardPayment(clientSecret);
+          if (actionError) {
+            toast({
+              title: "Payment Failed",
+              description: actionError.message,
+              variant: "destructive",
+            });
+            setPaying(false);
+            return;
+          }
+          if (updatedPI?.status === "succeeded") {
+            await createOrderRecord(updatedPI.id);
+          }
+          return;
+        }
+
+        if (paymentIntent.status === "succeeded") {
+          await createOrderRecord(paymentIntent.id);
+        }
+      } catch (err: any) {
+        ev.complete("fail");
+        toast({
+          title: "Error",
+          description: err.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+        setPaying(false);
+      }
+    });
+  }, [stripe, clientSecret, total, createOrderRecord, toast]);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,48 +282,7 @@ function PaymentForm({
       }
 
       if (paymentIntent?.status === "succeeded") {
-        try {
-          await apiRequest("POST", "/api/orders", {
-            customerEmail: formData.email,
-            customerName: formData.name,
-            customerPhone: formData.phone,
-            stripePaymentIntentId: paymentIntent.id,
-            items: items.map((item) => ({
-              productId: item.productId,
-              productName: item.name,
-              size: item.size,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-            total: total.toFixed(2),
-            shippingAddress: {
-              name: formData.name,
-              street: formData.street,
-              city: formData.city,
-              state: formData.state,
-              zip: formData.zip,
-            },
-          });
-          queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-          onSuccess();
-        } catch (orderErr: any) {
-          const msg: string = orderErr?.message || "";
-          const serverMsg = msg.includes(":") ? msg.split(":").slice(1).join(":").trim() : msg;
-          if (serverMsg.toLowerCase().includes("insufficient stock")) {
-            toast({
-              title: "Item Sold Out",
-              description: serverMsg || "An item in your cart is no longer available.",
-              variant: "destructive",
-            });
-          } else {
-            // Payment went through but order record failed — still advance to success
-            // so the customer knows their payment was accepted
-            console.error("[Checkout] Order creation failed after payment:", orderErr);
-            queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-            onSuccess();
-          }
-          setPaying(false);
-        }
+        await createOrderRecord(paymentIntent.id);
       }
     } catch (err: any) {
       const msg: string = err?.message || "";
@@ -220,6 +298,34 @@ function PaymentForm({
 
   return (
     <form onSubmit={handlePay} className="space-y-6">
+      {paymentRequest && (
+        <div>
+          <p className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent-blue mb-3">
+            Express Checkout
+          </p>
+          <PaymentRequestButtonElement
+            data-testid="button-apple-pay"
+            options={{
+              paymentRequest,
+              style: {
+                paymentRequestButton: {
+                  type: "default",
+                  theme: "dark",
+                  height: "48px",
+                },
+              },
+            }}
+          />
+          <div className="flex items-center gap-3 mt-5">
+            <div className="flex-1 h-px bg-border/40" />
+            <span className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">
+              or pay with card
+            </span>
+            <div className="flex-1 h-px bg-border/40" />
+          </div>
+        </div>
+      )}
+
       <div className="border-2 border-[#333] bg-[#181818]">
         <div className="px-5 py-3 border-b-2 border-[#333]">
           <p className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent-blue">
@@ -562,6 +668,7 @@ export default function CheckoutPage() {
                     formData={form}
                     items={items}
                     total={total}
+                    clientSecret={clientSecret}
                     onBack={() => {
                       setStep("info");
                       setPaymentMounted(false);
