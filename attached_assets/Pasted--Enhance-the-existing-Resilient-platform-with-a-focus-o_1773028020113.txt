@@ -1,0 +1,37 @@
+"Enhance the existing 'Resilient' platform with a focus on immersive branding and advanced administrative control.
+
+1. HIGH-STREET BRANDING & MOTION:
+
+Dynamic Watermarking: Throughout the site, implement a large, low-opacity (5%) 'RESILIENT' text overlay that slowly drifts diagonally across the background of sections, creating a bespoke, branded atmosphere.
+
+Marquee Effect: Add a high-speed, infinite scrolling text marquee at the top or bottom of the homepage that says 'RESILIENT SUPPLY — LIMITED DROP — QUALITY OBSESSED' in a bold, italicized font.
+
+Parallax Image Reveal: Ensure all large lifestyle images use a parallax scroll effect, where the image moves slower than the page scroll, giving the site a sense of physical depth.
+
+2. THE 'RESILIENT' EDITORIAL GALLERY:
+
+Create a new /gallery route (and a homepage section) featuring a Masonry-style photo gallery.
+
+Motion Effect: Implement a 'Tilt' effect using framer-motion or vanilla-tilt where the images react to the user's mouse movement, leaning toward the cursor.
+
+Include a 'Lightbox' feature so clicking an image expands it to full-screen with a high-end blur transition.
+
+3. ADVANCED PRODUCT MANAGEMENT (Dashboard):
+
+Full CRUD Interface: In the /admin dashboard, build a robust product management suite. I must be able to:
+
+Add: Create new products with multiple image uploads, pricing, and category assignments.
+
+Edit: Modify any existing product detail (Price, Description, Visibility).
+
+Delete/Archive: Remove products or hide them from the storefront instantly.
+
+Inventory Control: A dedicated table to update stock counts for S, M, L, and XL specifically for each product.
+
+Real-time Preview: If possible, show a 'Mini-Preview' of how the product card looks on the storefront while I am editing the details in the dashboard.
+
+4. GLOBAL STYLING:
+
+Standardize the brand palette: Deep Charcoal (#1A1A1A), Pure White (#FFFFFF), and a subtle 'Electric Silver' (#E5E5E5) for accents.
+
+All buttons must have a 'Liquid Fill' animation on hover, where the background color 'pours' in from the side."

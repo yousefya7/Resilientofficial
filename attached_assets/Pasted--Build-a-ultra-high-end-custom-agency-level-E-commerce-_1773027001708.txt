@@ -1,0 +1,33 @@
+"Build a ultra high-end, custom agency-level E-commerce platform and CRM for a clothing brand called 'Resilient' using Next.js 14 (App Router), TypeScript, Tailwind CSS, Prisma, Framer Motion, and React-tsparticles. The aesthetic must feel like a $50k+ bespoke build: minimalist, sophisticated, and fluid.
+
+1. THE EXCLUSIVE GATE (Password Page) & ADVANCED EFFECTS:
+Create a secure, immersive /drop-lock entry.
+
+Background: Instead of a static color, use React-tsparticles to create a slow-moving, subtle deep charcoal dust particle field over a black concrete texture.
+
+The Logo: Center the circular 'Resilient' logo. Apply a subtle 'breathing' scale animation (1.0 to 1.05) to it.
+
+Interaction: The password input and the 'SMS DROP ALERTS' sign-up form should use magnetic hover effects. When a user enters the correct password, implement a Framer Motion shutter transition (the screen splits horizontally from the center) to reveal the main site with a custom 'whoosh' sound effect (provide asset instructions).
+
+Security: Use Middleware to intercept all other routes (/, /shop, /admin) and redirect unauthenticated users to this page.
+
+2. MAIN SITE & DYNAMIC FX:
+
+Layout: Use a modern 'Bento Box' grid layout for the homepage to showcase categories and featured items.
+
+Scroll Effect: Implement scroll-triggered animations where sections fade and slide in from the bottom. Key headline text (e.g., 'RESILIENT SUPPLY') should use a 'split text reveal' effect, where letters appear one by one on scroll.
+
+Product Cards: On the shop page, product images should use a subtle 'RGB-split' or 'Lens Distortion' shader effect on hover, making them feel interactive and digital.
+
+3. DATABASE & SHOP LOGIC: Set up a Prisma schema with models for Admin, Product (with categories and multiple image arrays), Stock (mapped to sizes S, M, L, XL), Customer, and Order. Build a shop page allowing users to filter by category and select sizes.
+
+4. PAYMENTS & SHIPPING (The Engine):
+Integrate Stripe Checkout for secure payments. Integrate the Shippo API to calculate real-time USPS/UPS shipping rates at checkout based on the user's address. Use Webhooks to listen for successful payments to update the order status and trigger a 'Pending' shipment in Shippo.
+
+5. INTELLIGENT CRM & DASHBOARD: Build a protected /admin suite.
+
+Inventory: Implement an automated alert system; if a specific size falls below 5 units, flag it as 'Low Stock' and send an email via Resend or SendGrid. If stock is 0, automatically hide the product from the storefront.
+
+CRM Segmenting: Create a customer table that segments users into 'Elite' (spent >$500), 'New Leads' (SMS sign-ups only), and 'Churn Risk' (no purchase in 60 days). Include a 'Export Segment to CSV' feature.
+
+6. ASSETS: For now, use high-fashion editorial placeholders from Unsplash. I will provide the specific 'Resilient' logo files to replace them."

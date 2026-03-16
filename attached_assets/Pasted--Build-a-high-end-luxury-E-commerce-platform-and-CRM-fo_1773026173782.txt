@@ -1,0 +1,17 @@
+"Build a high-end, luxury E-commerce platform and CRM for a clothing brand called 'Resilient' using Next.js 14 (App Router), TypeScript, Tailwind CSS, Prisma, and Framer Motion. The aesthetic must look like a $50k+ custom agency build: minimalist, sophisticated, and 'expensive.'
+
+1. THE GATEKEEPER (Password Page): Create a secure /drop-lock page. Use a deep grey/charcoal textured background with the 'Resilient' logo (white circle) centered. Implement a masked password input and a prominent 'SMS DROP ALERTS' sign-up form. When the correct password is entered, use a Framer Motion shutter transition (screen splits horizontally) to reveal the main site. Use Middleware to block all other routes until the session is authenticated.
+
+2. FRONT-END DESIGN: Use a Bento Box grid layout for the homepage. Implement a 'magnetic' cursor effect and smooth scroll-triggered animations. Product cards should have subtle elevation shifts on hover. Use a luxury typography scale (Inter/Lexend) with wide letter-spacing for headers.
+
+3. DATABASE & SHOP LOGIC: Set up a Prisma schema with models for Admin, Product (with categories and multiple images), Stock (mapped to sizes S, M, L, XL), Customer, and Order. Build a shop page that allows users to filter by category and select sizes.
+
+4. PAYMENTS & SHIPPING: Integrate Stripe Checkout for secure payments. Integrate the Shippo API to calculate real-time USPS/UPS shipping rates at checkout based on the user's address. Use Webhooks to update order status to 'Paid' and trigger a 'Pending' shipment in Shippo.
+
+5. INTELLIGENT CRM & DASHBOARD: Build a protected /admin suite.
+
+Inventory: Add an automated alert system; if a specific size falls below 5 units, flag it as 'Low Stock' and send an email via Resend. If stock is 0, hide the product from the storefront.
+
+CRM Segmenting: Create a customer table that segments users into 'Elite' (spent >$500), 'New Leads' (SMS sign-ups only), and 'Churn Risk' (no purchase in 60 days). Include a 'Export to CSV' feature.
+
+6. ASSETS: For now, use high-fashion editorial placeholders from Unsplash. I will provide the specific 'Resilient' logo files to replace them."

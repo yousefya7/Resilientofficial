@@ -1,0 +1,56 @@
+"Add a full cancellation flow to the admin panel with a confirmation step, cancellation email, and automatic Stripe refund. Here are the full requirements:
+
+Admin Panel - Cancellation Confirmation Modal:
+
+When an admin changes an order status to Cancelled, instead of immediately saving, open a confirmation modal that says:
+
+"Are you sure you want to cancel this order? This will refund the customer and cannot be undone."
+
+
+Modal should have two buttons: Confirm Cancellation (red) and Go Back (grey)
+Only proceed with cancellation after the admin clicks Confirm
+
+
+Automatic Stripe Refund:
+
+On confirmation, use the Stripe API to issue a full refund on the payment associated with that order
+Retrieve the Stripe paymentIntentId or chargeId stored on the order record and call the Stripe refund endpoint:
+
+
+
+     stripe.refunds.create({ payment_intent: paymentIntentId })
+
+If the refund is successful, update the order status to Cancelled in the database
+If the Stripe refund fails, do NOT mark the order as cancelled — show an error message to the admin instead so it can be handled manually
+Store the Stripe refund ID on the order record in the database for reference
+
+
+Cancellation Email to Customer:
+
+After a successful refund, automatically send a branded cancellation email to the customer
+Email should include:
+
+A sincere apology message
+Their order number
+A list of the items that were in the order
+A clear statement that a full refund has been issued and to allow 5-7 business days to reflect
+A customer support contact email in case they have questions
+The same branded header, footer, and styling as the other email templates
+
+
+Subject line: "We're Sorry — Your Order Has Been Cancelled"
+
+
+Admin Panel Visual Update:
+
+Once cancelled, display the order status badge in red with a "Refunded" note beneath it
+Show the Stripe refund ID on the order detail view for record keeping
+
+
+Database:
+
+Add refundId and cancelledAt timestamp fields to the order record
+Log when the cancellation and refund occurred
+
+
+Do not break any existing order status, Stripe payment, or email functionality — only add to it"**
