@@ -1,0 +1,84 @@
+"Add a promo code/discount section and automatic tax calculation to the checkout page using the existing Stripe integration. Here are the full requirements:
+
+Promo Code Section:
+
+Add a promo code input field on the checkout page with an "Apply" button
+The field should be clean and on-brand, fitting the existing checkout design
+When a valid code is entered:
+
+Show a green success message with the discount amount or percentage
+Update the order total in real time to reflect the discount
+Show the discount as a line item in the order summary (e.g. "Promo: SUMMER20 — -$10.00")
+
+
+When an invalid code is entered:
+
+Show a red error message "Invalid or expired promo code"
+
+
+Promo code types to support:
+
+Percentage off (e.g. 20% off entire order)
+Fixed amount off (e.g. $10 off)
+Free shipping
+
+
+Apply the discount through Stripe Coupons so everything is tracked properly in the Stripe dashboard
+
+
+Admin Panel - Promo Code Management:
+
+Add a "Promo Codes" section in the admin panel where you can:
+
+Create new promo codes with:
+
+Code name (e.g. SUMMER20)
+Discount type (percentage or fixed amount)
+Discount value
+Expiration date (optional)
+Usage limit (optional — e.g. first 100 uses only)
+Minimum order amount required (optional)
+
+
+View all existing promo codes with their usage stats
+Enable or disable codes without deleting them
+Delete codes
+
+
+Sync all promo codes with Stripe Coupons so discounts are applied at the Stripe payment level
+
+
+Taxes:
+
+Enable Stripe Tax to automatically calculate the correct sales tax based on the customer's shipping address
+Add the tax amount as a line item in the order summary at checkout (e.g. "Tax — $4.50")
+Update the order total in real time as the shipping address is entered
+Make sure tax is calculated AFTER any promo code discount is applied
+Store the tax amount on the order record in the database
+Display the tax amount on the order confirmation page and in the order confirmation email
+
+
+Order Summary Display:
+
+The checkout order summary should clearly show:
+
+Subtotal
+Discount (if promo applied)
+Shipping cost
+Tax
+Total
+
+
+All values should update in real time as the customer fills out the form
+
+
+Stripe Configuration:
+
+Use the existing STRIPE_PUBLIC_KEY and STRIPE_SECRET_KEY from .env
+Create Stripe Coupons via the Stripe API when admin creates a promo code
+Use Stripe Tax for automatic tax calculation — make sure it is enabled in the Stripe dashboard
+Pass the coupon ID and tax settings through to the Stripe Payment Intent
+
+
+Do not break any existing checkout, Apple Pay, or Stripe payment functionality — only add to it"**
+

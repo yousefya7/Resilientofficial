@@ -5,8 +5,9 @@ import {
   type Order, type InsertOrder,
   type SmsSubscriber, type InsertSmsSubscriber,
   type Category, type InsertCategory,
+  type PromoCode, type InsertPromoCode,
   type ProductWithStock, type CustomerWithOrders,
-  products, stock, customers, orders, smsSubscribers, siteSettings, categories,
+  products, stock, customers, orders, smsSubscribers, siteSettings, categories, promoCodes,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
@@ -52,6 +53,13 @@ export interface IStorage {
     totalCustomers: number;
     lowStockAlerts: number;
   }>;
+  // Promo codes
+  getPromoCodes(): Promise<PromoCode[]>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  createPromoCode(data: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: string, data: Partial<InsertPromoCode>): Promise<PromoCode | undefined>;
+  deletePromoCode(id: string): Promise<PromoCode | undefined>;
+  incrementPromoUsage(code: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -269,6 +277,39 @@ export class DatabaseStorage implements IStorage {
       totalCustomers: allCustomers.length,
       lowStockAlerts,
     };
+  }
+
+  // ── Promo Codes ──────────────────────────────────────────────────────────────
+
+  async getPromoCodes(): Promise<PromoCode[]> {
+    return db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [row] = await db.select().from(promoCodes)
+      .where(sql`UPPER(${promoCodes.code}) = UPPER(${code})`);
+    return row;
+  }
+
+  async createPromoCode(data: InsertPromoCode): Promise<PromoCode> {
+    const [created] = await db.insert(promoCodes).values(data).returning();
+    return created;
+  }
+
+  async updatePromoCode(id: string, data: Partial<InsertPromoCode>): Promise<PromoCode | undefined> {
+    const [updated] = await db.update(promoCodes).set(data).where(eq(promoCodes.id, id)).returning();
+    return updated;
+  }
+
+  async deletePromoCode(id: string): Promise<PromoCode | undefined> {
+    const [deleted] = await db.delete(promoCodes).where(eq(promoCodes.id, id)).returning();
+    return deleted;
+  }
+
+  async incrementPromoUsage(code: string): Promise<void> {
+    await db.update(promoCodes)
+      .set({ usageCount: sql`${promoCodes.usageCount} + 1` })
+      .where(sql`UPPER(${promoCodes.code}) = UPPER(${code})`);
   }
 }
 

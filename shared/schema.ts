@@ -48,6 +48,23 @@ export const orders = pgTable("orders", {
   trackingNumber: text("tracking_number"),
   refundId: text("refund_id"),
   cancelledAt: timestamp("cancelled_at"),
+  promoCode: text("promo_code"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const promoCodes = pgTable("promo_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  type: text("type").notNull(), // "percentage" | "fixed" | "free_shipping"
+  value: decimal("value", { precision: 10, scale: 2 }).notNull().default("0"),
+  expirationDate: timestamp("expiration_date"),
+  usageLimit: integer("usage_limit"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
+  active: boolean("active").default(true).notNull(),
+  stripeCouponId: text("stripe_coupon_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -78,6 +95,7 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({ id: tru
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 export const insertSmsSubscriberSchema = createInsertSchema(smsSubscribers).omit({ id: true, createdAt: true });
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, createdAt: true });
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({ id: true, createdAt: true, usageCount: true });
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -91,6 +109,8 @@ export type SmsSubscriber = typeof smsSubscribers.$inferSelect;
 export type InsertSmsSubscriber = z.infer<typeof insertSmsSubscriberSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
 
 export type OrderItem = {
   productId: string;

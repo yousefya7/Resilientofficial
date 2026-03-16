@@ -73,7 +73,9 @@ type AdminData = {
   categories: Category[];
 };
 
-type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "settings";
+import { PromoCodesTab } from "./PromoCodesTab";
+
+type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings";
 
 type ProductForm = {
   name: string;
@@ -1039,6 +1041,7 @@ export default function AdminDashboard() {
     { key: "customers", label: "Contacts" },
     { key: "orders", label: "Orders" },
     { key: "marketing", label: "Marketing" },
+    { key: "promo", label: "Promo Codes" },
     { key: "settings", label: "Settings" },
   ];
 
@@ -2032,6 +2035,8 @@ export default function AdminDashboard() {
         {tab === "categories" && <CategoryManager categories={data?.categories || []} />}
 
         {tab === "marketing" && <MarketingPanel />}
+
+        {tab === "promo" && <PromoCodesTab />}
 
         {tab === "settings" && <SettingsPanel />}
       </div>

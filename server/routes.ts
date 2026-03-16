@@ -10,7 +10,8 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { sendOrderConfirmationSms, sendWelcomeSms, blastSms, twilioConfigured } from "./sms";
 import { sendOrderConfirmationEmail, sendShippingEmail, sendCancellationEmail, blastEmail, sendContactEmail, resendConfigured } from "./email";
-import { createPaymentIntent, createRefund } from "./stripe";
+import { createPaymentIntent, createRefund, calculateTaxAmount, createStripeCoupon, deleteStripeCoupon } from "./stripe";
+import { insertPromoCodeSchema } from "@shared/schema";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -130,25 +131,123 @@ export async function registerRoutes(
 
   app.post("/api/create-payment-intent", requireUnlock, async (req, res) => {
     try {
-      const { total } = req.body;
+      const { total, promoCode, shippingAddress } = req.body;
       if (!total || isNaN(Number(total))) {
         return res.status(400).json({ message: "Invalid total amount" });
       }
-      const amount = Number(total);
-      if (amount < 0.5) {
+      const subtotal = Number(total);
+      if (subtotal < 0.5) {
         return res.status(400).json({ message: "Amount too small (minimum $0.50)" });
       }
-      const result = await createPaymentIntent(amount, {
+
+      // Validate and apply promo code
+      let discountAmount = 0;
+      let appliedPromoCode: string | null = null;
+      if (promoCode) {
+        const promo = await storage.getPromoCodeByCode(promoCode.trim());
+        if (promo && promo.active) {
+          const now = new Date();
+          const expired = promo.expirationDate && new Date(promo.expirationDate) < now;
+          const limitHit = promo.usageLimit !== null && promo.usageLimit !== undefined && promo.usageCount >= promo.usageLimit;
+          const minNotMet = promo.minOrderAmount && subtotal < Number(promo.minOrderAmount);
+          if (!expired && !limitHit && !minNotMet) {
+            if (promo.type === "percentage") {
+              discountAmount = Math.min(subtotal * (Number(promo.value) / 100), subtotal);
+            } else if (promo.type === "fixed") {
+              discountAmount = Math.min(Number(promo.value), subtotal);
+            } else if (promo.type === "free_shipping") {
+              discountAmount = 0; // shipping is already free; tracked for display
+            }
+            appliedPromoCode = promo.code.toUpperCase();
+          }
+        }
+      }
+
+      const discountedSubtotal = subtotal - discountAmount;
+
+      // Calculate tax via Stripe Tax API (falls back to 0 if not configured)
+      let taxAmount = 0;
+      if (shippingAddress?.street && shippingAddress?.city && shippingAddress?.state && shippingAddress?.zip) {
+        const taxCents = await calculateTaxAmount(
+          Math.round(discountedSubtotal * 100),
+          {
+            line1: shippingAddress.street,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postalCode: shippingAddress.zip,
+          }
+        );
+        taxAmount = taxCents / 100;
+      }
+
+      const finalTotal = discountedSubtotal + taxAmount;
+      const chargeAmount = Math.max(finalTotal, 0.5);
+
+      const result = await createPaymentIntent(chargeAmount, {
         platform: "resilient-store",
+        ...(appliedPromoCode ? { promoCode: appliedPromoCode } : {}),
       });
-      res.json({ clientSecret: result.clientSecret });
+
+      res.json({
+        clientSecret: result.clientSecret,
+        discountAmount: discountAmount.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        finalTotal: chargeAmount.toFixed(2),
+        appliedPromoCode,
+      });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Payment intent creation failed" });
     }
   });
 
+  // Public: validate promo code
+  app.get("/api/promo-codes/validate", requireUnlock, async (req, res) => {
+    try {
+      const { code, subtotal } = req.query as { code?: string; subtotal?: string };
+      if (!code) return res.status(400).json({ message: "Code required" });
+      const sub = Number(subtotal) || 0;
+
+      const promo = await storage.getPromoCodeByCode(code.trim());
+      if (!promo || !promo.active) {
+        return res.status(404).json({ message: "Invalid or expired promo code" });
+      }
+      const now = new Date();
+      if (promo.expirationDate && new Date(promo.expirationDate) < now) {
+        return res.status(400).json({ message: "Invalid or expired promo code" });
+      }
+      if (promo.usageLimit !== null && promo.usageLimit !== undefined && promo.usageCount >= promo.usageLimit) {
+        return res.status(400).json({ message: "Invalid or expired promo code" });
+      }
+      if (promo.minOrderAmount && sub < Number(promo.minOrderAmount)) {
+        return res.status(400).json({ message: `Minimum order of $${Number(promo.minOrderAmount).toFixed(2)} required` });
+      }
+
+      let discountAmount = 0;
+      if (promo.type === "percentage") {
+        discountAmount = sub * (Number(promo.value) / 100);
+      } else if (promo.type === "fixed") {
+        discountAmount = Math.min(Number(promo.value), sub);
+      }
+
+      res.json({
+        code: promo.code.toUpperCase(),
+        type: promo.type,
+        value: Number(promo.value),
+        discountAmount: discountAmount.toFixed(2),
+        label:
+          promo.type === "percentage"
+            ? `${Number(promo.value)}% off`
+            : promo.type === "fixed"
+            ? `$${Number(promo.value).toFixed(2)} off`
+            : "Free shipping",
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Validation failed" });
+    }
+  });
+
   app.post("/api/orders", requireUnlock, async (req, res) => {
-    const { customerEmail, customerName, customerPhone, items, total, shippingAddress, stripePaymentIntentId } = req.body;
+    const { customerEmail, customerName, customerPhone, items, total, shippingAddress, stripePaymentIntentId, promoCode, discountAmount, taxAmount } = req.body;
 
     if (!customerEmail || !customerName || !items || !total || !Array.isArray(items)) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -185,6 +284,9 @@ export async function registerRoutes(
       status: stripePaymentIntentId ? "paid" : "pending",
       shippingAddress: shippingAddress as ShippingAddress,
       stripePaymentIntentId: stripePaymentIntentId || null,
+      promoCode: promoCode || null,
+      discountAmount: discountAmount ? Number(discountAmount).toFixed(2) : "0",
+      taxAmount: taxAmount ? Number(taxAmount).toFixed(2) : "0",
     });
 
     const newTotal = Number(customer.totalSpent || 0) + Number(total);
@@ -192,6 +294,10 @@ export async function registerRoutes(
       totalSpent: newTotal.toFixed(2),
       lastPurchase: new Date(),
     });
+
+    if (promoCode) {
+      storage.incrementPromoUsage(promoCode).catch(() => {});
+    }
 
     for (const item of items as OrderItem[]) {
       const product = await storage.getProduct(item.productId);
@@ -866,6 +972,78 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to send email" });
+    }
+  });
+
+  // ── Admin: Promo Codes ───────────────────────────────────────────────────────
+
+  app.get("/api/admin/promo-codes", requireAdmin, async (_req, res) => {
+    try {
+      const codes = await storage.getPromoCodes();
+      res.json(codes);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/promo-codes", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertPromoCodeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+      const data = parsed.data;
+
+      // Sync to Stripe as a Coupon
+      let stripeCouponId: string | null = null;
+      try {
+        stripeCouponId = await createStripeCoupon(
+          data.code,
+          data.type as "percentage" | "fixed" | "free_shipping",
+          Number(data.value)
+        );
+      } catch (e) {
+        console.warn("[Stripe] Coupon sync failed:", e);
+      }
+
+      const created = await storage.createPromoCode({
+        ...data,
+        code: data.code.toUpperCase(),
+        stripeCouponId,
+      });
+      res.json(created);
+    } catch (err: any) {
+      const msg = err.message || "Failed to create promo code";
+      if (msg.includes("unique") || msg.includes("duplicate")) {
+        return res.status(409).json({ message: "A promo code with that name already exists" });
+      }
+      res.status(500).json({ message: msg });
+    }
+  });
+
+  app.patch("/api/admin/promo-codes/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const updated = await storage.updatePromoCode(id, req.body);
+      if (!updated) return res.status(404).json({ message: "Not found" });
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/promo-codes/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      const existing = (await storage.getPromoCodes()).find((p) => p.id === id);
+      if (existing?.stripeCouponId) {
+        await deleteStripeCoupon(existing.stripeCouponId).catch(() => {});
+      }
+      const deleted = await storage.deletePromoCode(id);
+      if (!deleted) return res.status(404).json({ message: "Not found" });
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

@@ -11,21 +11,17 @@ export async function createRefund(
 ): Promise<{ id: string; method: "refund" | "cancel" }> {
   const stripe = getStripeClient();
 
-  // Retrieve the PI first so we know its current state and payment method type
   const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-  // Already fully cancelled — nothing to do
   if (pi.status === "canceled") {
     return { id: `pi_already_canceled_${paymentIntentId}`, method: "cancel" };
   }
 
-  // Not yet captured (e.g. card with manual capture) — cancel the PI instead of refunding
   if (pi.status === "requires_capture") {
     await stripe.paymentIntents.cancel(paymentIntentId);
     return { id: `pi_canceled_${paymentIntentId}`, method: "cancel" };
   }
 
-  // Payment not yet completed (no charge to refund) — cancel the PI
   if (
     pi.status === "requires_payment_method" ||
     pi.status === "requires_confirmation" ||
@@ -35,14 +31,75 @@ export async function createRefund(
     return { id: `pi_canceled_${paymentIntentId}`, method: "cancel" };
   }
 
-  // For succeeded or processing PIs (card, Cash App Pay, etc.) — issue a full refund
-  // Stripe routes the refund correctly for every payment method including Cash App Pay
   const refund = await stripe.refunds.create({
     payment_intent: paymentIntentId,
     reason: "requested_by_customer",
   });
 
   return { id: refund.id, method: "refund" };
+}
+
+export async function createStripeCoupon(
+  code: string,
+  type: "percentage" | "fixed" | "free_shipping",
+  value: number
+): Promise<string> {
+  const stripe = getStripeClient();
+  const couponParams: Stripe.CouponCreateParams = {
+    id: `RESILIENT_${code.toUpperCase()}`,
+    name: code.toUpperCase(),
+    ...(type === "percentage"
+      ? { percent_off: value }
+      : type === "fixed"
+      ? { amount_off: Math.round(value * 100), currency: "usd" }
+      : { percent_off: 100 }),
+    duration: "once",
+  };
+  const coupon = await stripe.coupons.create(couponParams);
+  return coupon.id;
+}
+
+export async function deleteStripeCoupon(couponId: string): Promise<void> {
+  const stripe = getStripeClient();
+  try {
+    await stripe.coupons.del(couponId);
+  } catch (e) {
+    console.warn("[Stripe] Could not delete coupon:", e);
+  }
+}
+
+export async function calculateTaxAmount(
+  amountCents: number,
+  address: { line1: string; city: string; state: string; postalCode: string }
+): Promise<number> {
+  const stripe = getStripeClient();
+  try {
+    const calculation = await (stripe as any).tax.calculations.create({
+      currency: "usd",
+      line_items: [
+        {
+          amount: amountCents,
+          reference: "order",
+          tax_behavior: "exclusive",
+          tax_code: "txcd_33040023",
+        },
+      ],
+      customer_details: {
+        address: {
+          line1: address.line1,
+          city: address.city,
+          state: address.state,
+          postal_code: address.postalCode,
+          country: "US",
+        },
+        address_source: "shipping",
+      },
+    });
+    return calculation.tax_amount_exclusive ?? 0;
+  } catch (e) {
+    console.warn("[Tax] Stripe Tax unavailable, using 0:", (e as any)?.message);
+    return 0;
+  }
 }
 
 export async function createPaymentIntent(
