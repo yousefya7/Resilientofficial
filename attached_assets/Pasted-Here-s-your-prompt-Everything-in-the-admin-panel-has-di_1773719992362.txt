@@ -1,0 +1,62 @@
+Here's your prompt:
+
+"Everything in the admin panel has disappeared — all orders, customers, contacts, and data is gone. This is a critical issue. Find the root cause and recover everything immediately. Here are the requirements:
+
+Find why everything disappeared:
+
+Check if the database connection is still active and connected
+Check if the database itself was wiped, corrupted, or disconnected
+If using a local database file (SQLite, JSON file, etc.) on Replit — this is the root cause as Replit does not persist local files between deployments
+Check server logs for any database errors or connection failures
+Check if environment variables for the database connection are still present in the .env file
+
+
+Check the database:
+
+If using MongoDB — check if the MongoDB Atlas cluster is still connected and has data
+If using PostgreSQL — check if the database URL in .env is still valid
+If using SQLite or a local JSON file — the data was likely wiped by a Replit redeployment and needs to be migrated immediately to a persistent database
+Log into the database directly and check if the tables/collections still exist and have data
+
+
+Recover data if possible:
+
+Check if Replit has any automatic backups or snapshots of the project
+Check the database provider dashboard for any backup or restore options
+If using MongoDB Atlas check the Collections tab to see if data still exists
+If using PostgreSQL check for any automatic backups in the provider dashboard
+
+
+Fix the root cause permanently:
+
+If data was stored locally on Replit, migrate immediately to a persistent external database:
+
+MongoDB Atlas (free tier) for document/NoSQL storage
+PostgreSQL on Supabase or Railway (free tier) for relational storage
+
+
+Update all database connection strings in the .env file
+Make sure all data going forward is stored in the external persistent database and never locally on Replit
+
+
+Restore the admin panel:
+
+Once database connection is confirmed working, verify all admin panel sections load correctly:
+
+Orders
+Customers
+Contacts
+Products
+
+
+Fix any broken queries or connections causing sections to appear empty
+
+
+Check everything else:
+
+Make sure products still show on the storefront
+Make sure the database connection is stable and will not drop again
+Add database connection error handling so if the connection drops the admin panel shows a clear error message instead of appearing empty
+
+
+Do not change any existing admin panel functionality — only fix the database connection and restore the data"**
