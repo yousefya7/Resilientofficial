@@ -75,7 +75,7 @@ type AdminData = {
 
 import { PromoCodesTab } from "./PromoCodesTab";
 
-type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings";
+type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings" | "contacts";
 
 type ProductForm = {
   name: string;
@@ -1038,8 +1038,9 @@ export default function AdminDashboard() {
     { key: "overview", label: "Overview" },
     { key: "inventory", label: "Inventory" },
     { key: "categories", label: "Categories" },
-    { key: "customers", label: "Contacts" },
+    { key: "customers", label: "Customers" },
     { key: "orders", label: "Orders" },
+    { key: "contacts", label: "Inquiries" },
     { key: "marketing", label: "Marketing" },
     { key: "promo", label: "Promo Codes" },
     { key: "settings", label: "Settings" },
@@ -2034,6 +2035,8 @@ export default function AdminDashboard() {
 
         {tab === "categories" && <CategoryManager categories={data?.categories || []} />}
 
+        {tab === "contacts" && <ContactSubmissionsTab />}
+
         {tab === "marketing" && <MarketingPanel />}
 
         {tab === "promo" && <PromoCodesTab />}
@@ -2063,10 +2066,12 @@ export default function AdminDashboard() {
 }
 
 const ORDER_STATUSES = [
-  { value: "paid",      label: "Paid",      color: "green" as const },
-  { value: "shipped",   label: "Shipped",   color: "blue" as const },
-  { value: "delivered", label: "Delivered", color: "green" as const },
-  { value: "cancelled", label: "Cancelled", color: "red" as const },
+  { value: "pending",    label: "Pending",    color: "amber" as const },
+  { value: "paid",       label: "Paid",       color: "green" as const },
+  { value: "processing", label: "Processing", color: "blue" as const },
+  { value: "shipped",    label: "Shipped",    color: "blue" as const },
+  { value: "delivered",  label: "Delivered",  color: "green" as const },
+  { value: "cancelled",  label: "Cancelled",  color: "red" as const },
 ];
 
 function statusVariant(status: string): "green" | "amber" | "red" | "blue" | "muted" {
@@ -3004,6 +3009,187 @@ function SettingsPanel() {
           </div>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+function ContactSubmissionsTab() {
+  const { toast } = useToast();
+  const [replyTo, setReplyTo] = useState<{ id: string; email: string; name: string } | null>(null);
+  const [replySubject, setReplySubject] = useState("");
+  const [replyMessage, setReplyMessage] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const { data: submissions = [], isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/contact-submissions"],
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: async ({ to, subject, message }: { to: string; subject: string; message: string }) => {
+      const res = await apiRequest("POST", "/api/admin/contact-email", { to, subject, message });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed to send"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Email Sent", description: "Your reply was sent successfully." });
+      setReplyTo(null); setReplySubject(""); setReplyMessage("");
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/admin/contact-submissions/${id}`);
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deleted", description: "Submission removed." });
+      setDeleteTarget(null);
+      refetch();
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 pt-2">
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b-2 border-border/50">
+        <div>
+          <p className="text-xs font-mono tracking-luxury uppercase text-muted-foreground">
+            {submissions.length} submission{submissions.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+      </div>
+
+      {submissions.length === 0 ? (
+        <p className="text-muted-foreground text-sm font-mono py-8 text-center">No contact form submissions yet.</p>
+      ) : (
+        <div className="space-y-0">
+          {submissions.map((sub: any) => (
+            <div key={sub.id} className="border-b-2 border-border/30" data-testid={`contact-submission-${sub.id}`}>
+              <div
+                className="grid grid-cols-12 gap-3 items-center py-4 cursor-pointer"
+                onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
+              >
+                <div className="col-span-8 md:col-span-5">
+                  <p className="text-sm font-mono font-bold truncate">{sub.name}</p>
+                  <p className="text-xs text-muted-foreground font-mono truncate">{sub.email}</p>
+                </div>
+                <div className="col-span-12 md:col-span-4 hidden md:block">
+                  <p className="text-xs font-mono text-muted-foreground truncate">{sub.subject}</p>
+                </div>
+                <div className="col-span-4 md:col-span-3 text-right">
+                  <p className="text-xs font-mono text-muted-foreground">
+                    {new Date(sub.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+              </div>
+
+              {expandedId === sub.id && (
+                <div className="pb-4 px-0 space-y-3">
+                  <div className="bg-muted/20 border border-border/40 p-4">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Subject</p>
+                    <p className="text-sm font-mono">{sub.subject}</p>
+                  </div>
+                  <div className="bg-muted/20 border border-border/40 p-4">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">Message</p>
+                    <p className="text-sm font-mono whitespace-pre-wrap leading-relaxed">{sub.message}</p>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs font-mono uppercase tracking-widest bg-accent-blue hover:bg-accent-blue/80 text-white border-0"
+                      onClick={() => { setReplyTo({ id: sub.id, email: sub.email, name: sub.name }); setReplySubject(`Re: ${sub.subject}`); }}
+                      data-testid={`button-reply-submission-${sub.id}`}
+                    >
+                      <Mail className="w-3 h-3 mr-1" /> Reply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs font-mono uppercase tracking-widest border-2 border-red-500/40 text-red-400 hover:bg-red-500/10"
+                      onClick={() => setDeleteTarget(sub.id)}
+                      data-testid={`button-delete-submission-${sub.id}`}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reply Modal */}
+      <Dialog open={!!replyTo} onOpenChange={(open) => { if (!open) { setReplyTo(null); setReplySubject(""); setReplyMessage(""); } }}>
+        <DialogContent className="bg-background border-2 border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-mono uppercase tracking-widest text-sm flex items-center gap-2">
+              <Mail className="w-4 h-4 text-accent-blue" /> Reply to Inquiry
+            </DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              Sending from <span className="text-foreground">info@resilientofficial.com</span> via Resend
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground block mb-1.5">To</label>
+              <div className="h-9 px-3 flex items-center border-2 border-border/40 bg-muted/30 text-xs font-mono text-muted-foreground">
+                {replyTo?.name} &lt;{replyTo?.email}&gt;
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground block mb-1.5">Subject</label>
+              <Input value={replySubject} onChange={(e) => setReplySubject(e.target.value)} className="border-2 border-border/60 bg-background text-xs font-mono h-9" data-testid="input-reply-subject" />
+            </div>
+            <div>
+              <label className="text-xs font-mono uppercase tracking-widest text-muted-foreground block mb-1.5">Message</label>
+              <Textarea value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} placeholder="Write your reply..." className="border-2 border-border/60 bg-background text-xs font-mono min-h-[140px] resize-none" data-testid="input-reply-message" />
+            </div>
+          </div>
+          <DialogFooter className="pt-2 gap-2">
+            <Button variant="outline" onClick={() => setReplyTo(null)} className="font-mono text-xs uppercase tracking-widest border-2">Cancel</Button>
+            <Button
+              onClick={() => replyTo && replyMutation.mutate({ to: replyTo.email, subject: replySubject, message: replyMessage })}
+              disabled={replyMutation.isPending || !replySubject.trim() || !replyMessage.trim()}
+              className="font-mono text-xs uppercase tracking-widest bg-accent-blue hover:bg-accent-blue/80 text-white border-0"
+              data-testid="button-send-reply"
+            >
+              {replyMutation.isPending ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Sending...</> : "Send Reply"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="border-2 border-red-500/40">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="uppercase tracking-luxury text-sm">Delete Submission?</AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-xs">This will permanently delete the contact form submission.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-2 uppercase tracking-luxury text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 border-2 border-red-500 uppercase tracking-luxury text-xs"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+              data-testid="button-confirm-delete-submission"
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

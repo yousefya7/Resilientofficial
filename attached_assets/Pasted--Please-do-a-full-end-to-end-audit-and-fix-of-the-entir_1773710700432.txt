@@ -1,0 +1,77 @@
+"Please do a full end-to-end audit and fix of the entire website and admin panel using LIVE Stripe keys. Test and verify every single feature works correctly from the customer side and the admin side. Here are all the areas to check and fix:
+
+Customer Facing Website:
+
+Home page loads correctly with all images, sections, and buttons working
+Product pages load with correct images, sizes, variants, and prices
+Add to cart works correctly and updates cart count
+Cart opens and displays correct items, quantities, and prices
+Cart popup/notification on mobile does not cover the cart icon
+Remove item from cart works
+Update quantity in cart works
+Proceed to checkout works
+Checkout page loads with all fields (name, email, address, shipping info)
+Stripe live payment form loads correctly with live publishable key
+Verify no console errors on the checkout page
+Order confirmation page shows after successful payment
+Order confirmation email sends to customer from orders@resilientofficial.com via Resend
+Contact form submits and sends email to info@resilientofficial.com
+
+
+Admin Panel - Orders Tab:
+
+All orders display correctly with customer name, items, price, and status
+Order status dropdown works and saves correctly
+When status changed to Shipped — tracking number and carrier modal appears and is required
+Shipping confirmation email sends to customer with tracking number and Track My Order button
+When status changed to Cancelled — confirmation modal appears before proceeding
+On confirmed cancellation — Stripe LIVE refund is issued automatically using live secret key
+Cancellation email sends to customer from orders@resilientofficial.com via Resend
+Status badges display correct colors for each status
+
+
+Admin Panel - Customers Tab:
+
+All customers display correctly
+In-app email modal opens when clicking email button
+Email sends successfully from info@resilientofficial.com via Resend
+Success and error messages display correctly
+
+
+Admin Panel - Contacts Tab:
+
+All contact form submissions display correctly
+In-app email modal opens when clicking email button
+Email sends successfully from info@resilientofficial.com via Resend
+Success and error messages display correctly
+
+
+Email Templates:
+
+All emails are branded with Resilient Official logo, colors, and styling
+Order confirmation email shows all items ordered clearly
+Shipping email shows all items, tracking number, carrier, and Track My Order button
+Cancellation email shows all items and confirms refund has been issued
+All emails render correctly on both desktop and mobile
+
+
+Stripe Live Mode Verification:
+
+Confirm STRIPE_PUBLIC_KEY starts with pk_live_
+Confirm STRIPE_SECRET_KEY starts with sk_live_
+Confirm no test mode keys anywhere in the codebase
+Confirm Stripe refund on cancellation uses live secret key
+Check Stripe dashboard to confirm live mode is active
+
+
+General Site:
+
+All pages load without console errors
+All images load correctly
+Site is fully responsive on mobile and desktop
+All buttons and links work correctly
+No broken routes or 404 pages
+
+
+Fix anything that is broken — go through each item systematically, log what passes and what fails, and fix every issue before moving on
+Do not remove or change any existing features — only fix what is broken and ensure everything works end to end"**

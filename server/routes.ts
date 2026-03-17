@@ -62,7 +62,7 @@ export async function registerRoutes(
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         maxAge: 24 * 60 * 60 * 1000,
       },
     })
@@ -116,11 +116,15 @@ ${allPages
       return res.status(400).json({ message: "All fields are required" });
     }
     try {
+      // Save to database
+      await storage.createContactSubmission({ name, email, subject, message });
+      // Send notification to store
       await sendContactEmail(
         "info@resilientofficial.com",
         `Contact Form: ${subject} — from ${name} <${email}>`,
         `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`
       );
+      // Send confirmation to customer
       if (resendConfigured()) {
         await sendContactConfirmationEmail(email, name);
       }
@@ -1107,6 +1111,26 @@ ${allPages
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
+    }
+  });
+
+  // ── Admin: Contact Submissions ────────────────────────────────────────────────
+
+  app.get("/api/admin/contact-submissions", requireAdmin, async (_req, res) => {
+    try {
+      const submissions = await storage.getContactSubmissions();
+      res.json(submissions);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch contact submissions" });
+    }
+  });
+
+  app.delete("/api/admin/contact-submissions/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteContactSubmission(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to delete submission" });
     }
   });
 

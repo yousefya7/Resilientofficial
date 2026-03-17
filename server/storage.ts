@@ -6,8 +6,9 @@ import {
   type SmsSubscriber, type InsertSmsSubscriber,
   type Category, type InsertCategory,
   type PromoCode, type InsertPromoCode,
+  type ContactSubmission, type InsertContactSubmission,
   type ProductWithStock, type CustomerWithOrders,
-  products, stock, customers, orders, smsSubscribers, siteSettings, categories, promoCodes,
+  products, stock, customers, orders, smsSubscribers, siteSettings, categories, promoCodes, contactSubmissions,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
@@ -60,6 +61,10 @@ export interface IStorage {
   updatePromoCode(id: string, data: Partial<InsertPromoCode>): Promise<PromoCode | undefined>;
   deletePromoCode(id: string): Promise<PromoCode | undefined>;
   incrementPromoUsage(code: string): Promise<void>;
+  // Contact submissions
+  createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
+  getContactSubmissions(): Promise<ContactSubmission[]>;
+  deleteContactSubmission(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -310,6 +315,19 @@ export class DatabaseStorage implements IStorage {
     await db.update(promoCodes)
       .set({ usageCount: sql`${promoCodes.usageCount} + 1` })
       .where(sql`UPPER(${promoCodes.code}) = UPPER(${code})`);
+  }
+
+  async createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission> {
+    const [created] = await db.insert(contactSubmissions).values(data).returning();
+    return created;
+  }
+
+  async getContactSubmissions(): Promise<ContactSubmission[]> {
+    return db.select().from(contactSubmissions).orderBy(desc(contactSubmissions.createdAt));
+  }
+
+  async deleteContactSubmission(id: string): Promise<void> {
+    await db.delete(contactSubmissions).where(eq(contactSubmissions.id, id));
   }
 }
 
