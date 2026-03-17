@@ -185,18 +185,18 @@ ${allPages
     res.json({ authenticated: !!(req.session as any).admin });
   });
 
-  app.get("/api/products", requireUnlock, async (_req, res) => {
+  app.get("/api/products", async (_req, res) => {
     const prods = await storage.getProducts();
     res.json(prods);
   });
 
-  app.get("/api/products/:id", requireUnlock, async (req, res) => {
+  app.get("/api/products/:id", async (req, res) => {
     const product = await storage.getProduct(req.params.id as string);
     if (!product || !product.active) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   });
 
-  app.post("/api/create-payment-intent", requireUnlock, async (req, res) => {
+  app.post("/api/create-payment-intent", async (req, res) => {
     try {
       const { total, promoCode, shippingAddress } = req.body;
       if (!total || isNaN(Number(total))) {
@@ -283,7 +283,7 @@ ${allPages
   });
 
   // Public: validate promo code
-  app.get("/api/promo-codes/validate", requireUnlock, async (req, res) => {
+  app.get("/api/promo-codes/validate", async (req, res) => {
     try {
       const { code, subtotal } = req.query as { code?: string; subtotal?: string };
       if (!code) return res.status(400).json({ message: "Code required" });
@@ -328,7 +328,7 @@ ${allPages
     }
   });
 
-  app.post("/api/orders", requireUnlock, async (req, res) => {
+  app.post("/api/orders", async (req, res) => {
     const { customerEmail, customerName, customerPhone, items, total, shippingAddress, stripePaymentIntentId, promoCode, discountAmount, taxAmount } = req.body;
 
     if (!customerEmail || !customerName || !items || !total || !Array.isArray(items)) {
