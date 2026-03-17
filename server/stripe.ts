@@ -68,11 +68,31 @@ export async function deleteStripeCoupon(couponId: string): Promise<void> {
   }
 }
 
+export class TaxCalculationError extends Error {
+  public readonly stripeCode?: string;
+  public readonly stripeType?: string;
+  constructor(message: string, opts?: { code?: string; type?: string }) {
+    super(message);
+    this.name = "TaxCalculationError";
+    this.stripeCode = opts?.code;
+    this.stripeType = opts?.type;
+  }
+}
+
 export async function calculateTaxAmount(
   amountCents: number,
   address: { line1: string; city: string; state: string; postalCode: string }
 ): Promise<number> {
   const stripe = getStripeClient();
+
+  console.log("[Tax] Calculating tax for address:", {
+    city: address.city,
+    state: address.state,
+    postalCode: address.postalCode,
+    country: "US",
+    amountCents,
+  });
+
   try {
     const calculation = await (stripe as any).tax.calculations.create({
       currency: "usd",
@@ -95,15 +115,31 @@ export async function calculateTaxAmount(
         address_source: "shipping",
       },
     });
-    return calculation.tax_amount_exclusive ?? 0;
+
+    const taxAmount = calculation.tax_amount_exclusive ?? 0;
+
+    if (taxAmount === 0) {
+      console.warn(
+        `[Tax] Stripe returned $0 tax for state "${address.state}" (ZIP ${address.postalCode}). ` +
+        `This likely means no tax registration exists for this state in Stripe Dashboard → Settings → Tax → Registrations.`
+      );
+    } else {
+      console.log(`[Tax] Calculated tax: ${taxAmount} cents for state "${address.state}" (ZIP ${address.postalCode})`);
+    }
+
+    return taxAmount;
   } catch (e: any) {
     console.error("[Tax] Stripe Tax calculation failed:", {
       message: e?.message,
       type: e?.type,
       code: e?.code,
       param: e?.param,
+      statusCode: e?.statusCode,
     });
-    return 0;
+    throw new TaxCalculationError(
+      e?.message || "Tax calculation failed",
+      { code: e?.code, type: e?.type }
+    );
   }
 }
 

@@ -488,7 +488,22 @@ export default function CheckoutPage() {
       });
       setStep("payment");
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Could not initialize payment. Please try again.", variant: "destructive" });
+      const msg: string = err?.message || "";
+      let isTaxError = false;
+      try {
+        const jsonPart = msg.includes(":") ? msg.substring(msg.indexOf(":") + 1).trim() : msg;
+        const parsed = JSON.parse(jsonPart);
+        if (parsed.taxError) isTaxError = true;
+      } catch {
+        isTaxError = msg.toLowerCase().includes("tax");
+      }
+      toast({
+        title: isTaxError ? "Tax Calculation Issue" : "Error",
+        description: isTaxError
+          ? "We're unable to calculate sales tax for your address right now. Please try again later or contact support."
+          : (msg || "Could not initialize payment. Please try again."),
+        variant: "destructive",
+      });
     }
     setCreatingIntent(false);
   };
