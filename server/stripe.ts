@@ -117,7 +117,7 @@ export async function createPaymentIntent(
   const pi = await stripe.paymentIntents.create({
     amount: amountCents,
     currency: "usd",
-    payment_method_types: ["card"],
+    automatic_payment_methods: { enabled: true },
     metadata: { platform: "resilient-store", ...metadata },
   });
 

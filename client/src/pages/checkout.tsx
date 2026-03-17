@@ -176,33 +176,39 @@ function PaymentForm({
     pr.on("paymentmethod", async (ev: any) => {
       setPaying(true);
       try {
-        const { error, paymentIntent } = await (stripe as any).confirmCardPayment(
+        const { error, paymentIntent } = await stripe.confirmPayment({
           clientSecret,
-          { payment_method: ev.paymentMethod.id },
-          { handleActions: false }
-        );
+          confirmParams: {
+            payment_method: ev.paymentMethod.id,
+            return_url: `${window.location.origin}/checkout`,
+          },
+          redirect: "if_required",
+        });
 
         if (error) {
           ev.complete("fail");
-          toast({ title: "Apple Pay Failed", description: error.message || "Payment failed.", variant: "destructive" });
+          toast({ title: "Payment Failed", description: error.message || "Payment failed.", variant: "destructive" });
           setPaying(false);
           return;
         }
 
         ev.complete("success");
 
-        if (paymentIntent.status === "requires_action") {
-          const { error: actionError, paymentIntent: updatedPI } = await (stripe as any).confirmCardPayment(clientSecret);
+        if (paymentIntent?.status === "requires_action") {
+          const { error: actionError, paymentIntent: updatedPI } = await stripe.confirmPayment({
+            clientSecret,
+            redirect: "if_required",
+          });
           if (actionError) {
             toast({ title: "Payment Failed", description: actionError.message, variant: "destructive" });
             setPaying(false);
             return;
           }
-          if (updatedPI?.status === "succeeded") await createOrderRecord(updatedPI.id);
+          if ((updatedPI as any)?.status === "succeeded") await createOrderRecord((updatedPI as any).id);
           return;
         }
 
-        if (paymentIntent.status === "succeeded") await createOrderRecord(paymentIntent.id);
+        if (paymentIntent?.status === "succeeded") await createOrderRecord(paymentIntent.id);
       } catch (err: any) {
         ev.complete("fail");
         toast({ title: "Error", description: err.message || "Something went wrong.", variant: "destructive" });
