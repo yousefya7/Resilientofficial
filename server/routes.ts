@@ -8,19 +8,20 @@ import { pool } from "./db";
 import multer from "multer";
 import path from "path";
 import { randomUUID } from "crypto";
+import { v2 as cloudinary } from "cloudinary";
 import { sendOrderConfirmationSms, sendWelcomeSms, blastSms, twilioConfigured } from "./sms";
 import { sendOrderConfirmationEmail, sendShippingEmail, sendCancellationEmail, blastEmail, sendContactEmail, sendContactConfirmationEmail, resendConfigured } from "./email";
 import { createPaymentIntent, createRefund, calculateTaxAmount, createStripeCoupon, deleteStripeCoupon, verifyStripeAccount } from "./stripe";
 import { insertPromoCodeSchema } from "@shared/schema";
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: "uploads/",
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, `${randomUUID()}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = /\.(jpg|jpeg|png|gif|webp|avif)$/i;
@@ -31,6 +32,19 @@ const upload = multer({
     }
   },
 });
+
+async function uploadToCloudinary(buffer: Buffer, folder = "resilient"): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "image" },
+      (error, result) => {
+        if (error || !result) return reject(error || new Error("Upload failed"));
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+}
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin2026";
 
@@ -715,11 +729,17 @@ ${allPages
 
   app.use("/uploads", (await import("express")).default.static("uploads"));
 
-  app.post("/api/admin/upload", requireAdmin, upload.single("image"), (req, res) => {
+  app.post("/api/admin/upload", requireAdmin, upload.single("image"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    res.json({ url: `/uploads/${req.file.filename}` });
+    try {
+      const url = await uploadToCloudinary(req.file.buffer);
+      res.json({ url });
+    } catch (err: any) {
+      console.error("[Upload] Cloudinary upload failed:", err?.message);
+      res.status(500).json({ message: "Image upload failed" });
+    }
   });
 
   app.post("/api/admin/products", requireAdmin, async (req, res) => {
