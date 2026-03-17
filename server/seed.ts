@@ -1,7 +1,7 @@
 import { storage } from "./storage";
 import { db } from "./db";
 import { products, stock, categories } from "@shared/schema";
-import { inArray } from "drizzle-orm";
+import { inArray, eq } from "drizzle-orm";
 
 const PLACEHOLDER_NAMES = [
   "Phantom Hoodie",
@@ -19,12 +19,12 @@ const REAL_PRODUCTS = [
     price: "777",
     category: "jackets",
     images: [
-      "/uploads/0549364b-620b-4506-9bb7-4e8e91a07d02.JPG",
-      "/uploads/1cdb43df-85e8-40b7-aa56-fecf34e9df6e.JPG",
-      "/uploads/eae890c6-e0bb-41bd-8bb3-3804886a52f1.JPG",
-      "/uploads/929bd223-c4c7-4f32-ac92-da03fc3c5577.JPG",
-      "/uploads/140e37fa-9ab9-48f5-b1d1-7c3d10e191d1.JPG",
-      "/uploads/8b43437a-1055-4166-a597-83c7c1ed7753.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716088/resilient/ouwujk2mpplhhcwucger.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716089/resilient/o1wpo5qmuu4www4sbqbn.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716090/resilient/va3f2ijaguxcpep4acjc.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716091/resilient/dkipgfnyoc3yaqylsrx6.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716092/resilient/zasxkwzq6bvoeslsektk.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716093/resilient/vbkvliotwhwmzbyqojx9.jpg",
     ],
     featured: true,
     active: true,
@@ -38,10 +38,10 @@ const REAL_PRODUCTS = [
     price: "77",
     category: "tees",
     images: [
-      "/uploads/1aaf147b-0d8e-487e-9e14-b626d0a894a4.JPG",
-      "/uploads/07502602-1687-4b53-9a43-bd7daa1f446c.JPG",
-      "/uploads/89667002-16f5-4e57-b1ca-bd77314661f2.JPG",
-      "/uploads/87c1f84c-146e-45cf-afad-6d09ab22a968.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716094/resilient/outiuli9csdtgr6l5rif.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716095/resilient/udonue1ky0asxjjcgevk.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716096/resilient/zspaz5w5brk5zqketzbu.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716097/resilient/dpyhlu0tiqd5s5npnn3c.jpg",
     ],
     featured: true,
     active: true,
@@ -55,10 +55,10 @@ const REAL_PRODUCTS = [
     price: "77",
     category: "tees",
     images: [
-      "/uploads/4e7406df-ca8c-402f-ad76-d8d689c835bf.JPG",
-      "/uploads/d85e0bbc-794f-4fe4-90cd-3fbbe87249ec.JPG",
-      "/uploads/c0384553-9546-448b-ac93-cb79f7e5a233.JPG",
-      "/uploads/ca2c5759-9ea8-467a-98d5-c98e159da79d.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716097/resilient/ysilaccdbyfbwoi06l25.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716098/resilient/bmpl4fu8jr23dmvctxws.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716099/resilient/ebxyah00b3ouaxdxwufa.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716100/resilient/eamxix2y0efqalnyts2s.jpg",
     ],
     featured: true,
     active: true,
@@ -72,10 +72,10 @@ const REAL_PRODUCTS = [
     price: "77",
     category: "tees",
     images: [
-      "/uploads/054746a5-ae17-494f-b56b-6046517ee4ed.JPG",
-      "/uploads/168a04a0-16e3-4178-abbe-a55c9ac8adb3.JPG",
-      "/uploads/5c7ca3ea-a8b8-4851-92d7-3e6d9221157d.JPG",
-      "/uploads/67a3a51a-94d2-416f-b14d-bd98d49e1031.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716081/resilient/csznh3qqhdqvcz1vpc9q.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716082/resilient/sfb9umwr7ovbdjt7wshm.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716083/resilient/apnyqmcuqqawvji3zgqv.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716084/resilient/ssqws5fwkerg9zqwnd0y.jpg",
     ],
     featured: true,
     active: true,
@@ -89,10 +89,10 @@ const REAL_PRODUCTS = [
     price: "77",
     category: "tees",
     images: [
-      "/uploads/795d1a10-eb29-45cc-a7f3-8382aa3c7241.JPG",
-      "/uploads/12bc51b9-3d78-47a1-9333-9f8d66bcd699.JPG",
-      "/uploads/1ba7b520-f32a-4652-be75-8a15d2d2e30b.JPG",
-      "/uploads/0783c7ba-a0c4-4198-bdc4-036bb5a021c5.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716085/resilient/sm0t6pxv0cnv7ghxdiwb.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716086/resilient/kvcibv1g6tacdzvsks8p.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716087/resilient/ownwqu01woplapdio1xv.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716087/resilient/dygutbbbrlveywfeiawd.jpg",
     ],
     featured: true,
     active: true,
@@ -106,9 +106,9 @@ const REAL_PRODUCTS = [
     price: "77",
     category: "tees",
     images: [
-      "/uploads/e742c1ee-b946-450c-a16b-0db775d3b12c.JPG",
-      "/uploads/3532affa-ee36-4e92-baae-1b7d149f59ec.JPG",
-      "/uploads/d0080489-d00c-4d86-be12-897437bdd771.JPG",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716078/resilient/d5n0vn9bilgjs6ijytov.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716079/resilient/exj7i3h4ye2ajfofqiwa.jpg",
+      "https://res.cloudinary.com/dgawn40ku/image/upload/v1773716080/resilient/iklgazgvdsfsoqrqr07c.jpg",
     ],
     featured: true,
     active: true,
@@ -124,6 +124,22 @@ export async function seedDatabase() {
   const hasRealProducts = existing.some((p) => p.name === "Rhinestone Jacket");
 
   if (hasRealProducts && !hasPlaceholders) {
+    // Already seeded with real products — update images to Cloudinary if still using /uploads/
+    const needsImageUpdate = existing.some((p) =>
+      (p.images || []).some((img: string) => img.startsWith("/uploads/"))
+    );
+    if (needsImageUpdate) {
+      console.log("Updating product images to Cloudinary URLs...");
+      for (const seedProduct of REAL_PRODUCTS) {
+        const match = existing.find((p) => p.name === seedProduct.name);
+        if (match) {
+          await db.update(products)
+            .set({ images: seedProduct.images })
+            .where(eq(products.id, match.id));
+        }
+      }
+      console.log("Product images updated to Cloudinary.");
+    }
     return;
   }
 

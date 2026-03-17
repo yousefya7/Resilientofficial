@@ -79,7 +79,9 @@ export async function registerRoutes(
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       },
     })
   );
@@ -191,7 +193,13 @@ ${allPages
     if (password === ADMIN_PASSWORD) {
       (req.session as any).admin = true;
       (req.session as any).unlocked = true;
-      res.json({ success: true });
+      req.session.save((err) => {
+        if (err) {
+          console.error("[Session] Save error on admin login:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        res.json({ success: true });
+      });
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }
