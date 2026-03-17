@@ -173,7 +173,7 @@ function PaymentForm({
       if (result) setPaymentRequest(pr);
     });
 
-    pr.on("paymentmethod", async (ev: any) => {
+    const handlePaymentMethod = async (ev: any) => {
       setPaying(true);
       try {
         const { error, paymentIntent } = await stripe.confirmPayment({
@@ -214,7 +214,14 @@ function PaymentForm({
         toast({ title: "Error", description: err.message || "Something went wrong.", variant: "destructive" });
         setPaying(false);
       }
-    });
+    };
+
+    pr.on("paymentmethod", handlePaymentMethod);
+
+    return () => {
+      pr.off("paymentmethod", handlePaymentMethod);
+      setPaymentRequest(null);
+    };
   }, [stripe, clientSecret, breakdown.finalTotal, createOrderRecord, toast]);
 
   const handlePay = async (e: React.FormEvent) => {
