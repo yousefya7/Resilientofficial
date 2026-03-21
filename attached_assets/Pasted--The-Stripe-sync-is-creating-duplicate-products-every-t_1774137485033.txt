@@ -1,0 +1,50 @@
+"The Stripe sync is creating duplicate products every time it runs even when the product already exists in Stripe. Fix this immediately. Here are the requirements:
+Find the root cause:
+
+Check why the duplicate check is not working before creating products in Stripe
+The code should be checking for an existing Stripe product ID on the database record before creating a new one
+If the Stripe product ID is not being saved back to the database after creation that would cause duplicates every time — fix this first
+
+
+
+Fix the duplicate prevention logic:
+
+Before creating any product in Stripe, check if the product record in the database already has a stripeProductId stored on it
+If stripeProductId exists → skip creation and go straight to updating the existing Stripe product instead
+If stripeProductId does not exist → create new product in Stripe and immediately save the returned Stripe product ID back to the database record
+This check must happen for both the Sync All button and the individual product sync button
+
+
+
+Clean up existing duplicates in Stripe:
+
+Go through all products currently in the Stripe catalog
+Identify any duplicates (same product name appearing more than once)
+Archive all duplicate entries keeping only the most recent one
+Make sure the correct Stripe product ID is saved on each database record
+
+
+
+Make the sync logic bulletproof:
+
+The sync function should follow this exact logic every single time:
+
+
+
+     if product has stripeProductId:
+         update existing Stripe product
+     else:
+         create new Stripe product
+         save stripeProductId to database immediately
+
+Never create a new Stripe product if a stripeProductId already exists on the record
+After every successful creation save the Stripe ID to the database before doing anything else so it is never lost
+
+Admin Panel:
+
+Show a clear indicator on each product showing whether it is linked to Stripe or not
+If a product already has a Stripe ID show it as synced — do not allow accidental re-creation
+
+
+
+Do not break any existing sync, product, or Stripe functionality — only fix the duplicate issue"**

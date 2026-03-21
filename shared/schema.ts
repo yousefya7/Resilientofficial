@@ -15,6 +15,8 @@ export const products = pgTable("products", {
   displayOrder: integer("display_order").default(0).notNull(),
   stripeProductId: text("stripe_product_id"),
   stripePriceId: text("stripe_price_id"),
+  stripeSyncError: text("stripe_sync_error"),
+  stripeLastSyncedAt: timestamp("stripe_last_synced_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

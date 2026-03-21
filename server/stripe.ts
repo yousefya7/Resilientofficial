@@ -154,7 +154,7 @@ export async function syncProductToStripe(product: {
   images: string[];
   stripeProductId?: string | null;
   stripePriceId?: string | null;
-}): Promise<{ stripeProductId: string; stripePriceId: string }> {
+}): Promise<{ stripeProductId: string; stripePriceId: string; syncedAt: Date }> {
   const stripe = getStripeClient();
   const priceCents = Math.round(Number(product.price) * 100);
 
@@ -208,8 +208,9 @@ export async function syncProductToStripe(product: {
     stripePriceId = stripePrice.id;
   }
 
+  const syncedAt = new Date();
   console.log(`[Stripe] Synced product "${product.name}" → ${stripeProductId} / ${stripePriceId}`);
-  return { stripeProductId, stripePriceId };
+  return { stripeProductId, stripePriceId, syncedAt };
 }
 
 export async function archiveStripeProduct(stripeProductId: string): Promise<void> {
