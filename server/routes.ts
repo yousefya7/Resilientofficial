@@ -1220,7 +1220,41 @@ ${allPages
   app.patch("/api/admin/promo-codes/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params as { id: string };
-      const updated = await storage.updatePromoCode(id, req.body);
+
+      // Fetch current record so we can decide what to sync
+      const existing = (await storage.getPromoCodes()).find((p) => p.id === id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+
+      let dbUpdates: Record<string, any> = { ...req.body };
+
+      // Sync active-state changes to Stripe
+      if (typeof req.body.active === "boolean") {
+        if (!req.body.active && existing.stripeCouponId) {
+          // Deactivating — delete the coupon from Stripe
+          try {
+            await deleteStripeCoupon(existing.stripeCouponId);
+            dbUpdates.stripeCouponId = null;
+            console.log(`[Stripe] Deleted coupon for deactivated promo ${existing.code}`);
+          } catch (e) {
+            console.warn("[Stripe] Could not delete coupon on deactivate:", e);
+          }
+        } else if (req.body.active && !existing.stripeCouponId) {
+          // Reactivating — recreate coupon in Stripe
+          try {
+            const newCouponId = await createStripeCoupon(
+              existing.code,
+              existing.type as "percentage" | "fixed" | "free_shipping",
+              Number(existing.value)
+            );
+            dbUpdates.stripeCouponId = newCouponId;
+            console.log(`[Stripe] Recreated coupon for reactivated promo ${existing.code}: ${newCouponId}`);
+          } catch (e) {
+            console.warn("[Stripe] Could not recreate coupon on reactivate:", e);
+          }
+        }
+      }
+
+      const updated = await storage.updatePromoCode(id, dbUpdates);
       if (!updated) return res.status(404).json({ message: "Not found" });
       res.json(updated);
     } catch (err: any) {

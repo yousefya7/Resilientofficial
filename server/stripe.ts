@@ -63,14 +63,14 @@ export async function createStripeCoupon(
 ): Promise<string> {
   const stripe = getStripeClient();
   const couponParams: Stripe.CouponCreateParams = {
-    id: `RESILIENT_${code.toUpperCase()}`,
-    name: code.toUpperCase(),
+    name: `RESILIENT — ${code.toUpperCase()}`,
     ...(type === "percentage"
       ? { percent_off: value }
       : type === "fixed"
       ? { amount_off: Math.round(value * 100), currency: "usd" }
       : { percent_off: 100 }),
     duration: "once",
+    metadata: { resilient_code: code.toUpperCase() },
   };
   const coupon = await stripe.coupons.create(couponParams);
   return coupon.id;
