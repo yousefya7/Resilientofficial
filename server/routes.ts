@@ -1068,6 +1068,51 @@ ${allPages
     }
   });
 
+  // Archive any Stripe product NOT currently referenced by the DB (orphan cleanup)
+  app.post("/api/admin/products/purge-stripe-orphans", requireAdmin, async (req, res) => {
+    try {
+      const stripe = (await import("stripe")).default;
+      const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" });
+
+      // Collect all currently-valid Stripe product IDs from DB
+      const allProducts = await storage.getAllProducts();
+      const validIds = new Set(allProducts.map((p) => p.stripeProductId).filter(Boolean) as string[]);
+
+      // Page through all active Stripe products and archive any not in validIds
+      let archived = 0;
+      const report: string[] = [];
+      let hasMore = true;
+      let startingAfter: string | undefined;
+
+      while (hasMore) {
+        const page = await stripeClient.products.list({
+          active: true,
+          limit: 100,
+          ...(startingAfter ? { starting_after: startingAfter } : {}),
+        });
+
+        for (const sp of page.data) {
+          if (!validIds.has(sp.id)) {
+            await stripeClient.products.update(sp.id, { active: false });
+            archived++;
+            report.push(`Archived orphan: ${sp.id} ("${sp.name}")`);
+            console.log(`[Stripe Cleanup] Archived orphan: ${sp.id} ("${sp.name}")`);
+          }
+        }
+
+        hasMore = page.has_more;
+        if (page.data.length > 0) {
+          startingAfter = page.data[page.data.length - 1].id;
+        }
+      }
+
+      res.json({ archived, validKept: validIds.size, report });
+    } catch (err: any) {
+      console.error("[Stripe Cleanup] Failed:", err?.message);
+      res.status(500).json({ message: err.message || "Cleanup failed" });
+    }
+  });
+
   app.post("/api/admin/products/:id/sync", requireAdmin, async (req, res) => {
     try {
       const id = req.params.id as string;

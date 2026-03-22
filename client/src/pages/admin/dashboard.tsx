@@ -1037,6 +1037,24 @@ export default function AdminDashboard() {
     },
   });
 
+  const purgeOrphansMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/products/purge-stripe-orphans", {});
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Cleanup failed"); }
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      toast({
+        title: `Archived ${data.archived} duplicate Stripe product${data.archived !== 1 ? "s" : ""}`,
+        description: `${data.validKept} current product${data.validKept !== 1 ? "s" : ""} kept`,
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Stripe Cleanup Failed", description: err.message, variant: "destructive" });
+    },
+  });
+
   const syncProductMutation = useMutation({
     mutationFn: async (productId: string) => {
       const res = await apiRequest("POST", `/api/admin/products/${productId}/sync`, {});
@@ -1285,6 +1303,25 @@ export default function AdminDashboard() {
                 {data?.products?.length || 0} products
               </p>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="text-xs tracking-luxury uppercase border-2 border-red-500/40 text-red-400 hover:text-red-300 hover:border-red-400"
+                  onClick={() => {
+                    if (window.confirm("This will archive ALL Stripe products not currently linked to your catalog. Only run this to remove old duplicates. Continue?")) {
+                      purgeOrphansMutation.mutate();
+                    }
+                  }}
+                  disabled={purgeOrphansMutation.isPending || syncAllMutation.isPending}
+                  data-testid="button-purge-stripe-orphans"
+                  title="Archive Stripe products that are no longer linked to any catalog item"
+                >
+                  {purgeOrphansMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Clean Up Stripe
+                </Button>
                 <Button
                   variant="outline"
                   className="text-xs tracking-luxury uppercase border-2 border-border/50"
