@@ -780,6 +780,8 @@ ${allPages
           images: product.images,
           stripeProductId: null,
           stripePriceId: null,
+        }, async (spId) => {
+          await storage.updateProduct(product.id, { stripeProductId: spId });
         });
         await storage.updateProduct(product.id, {
           stripeProductId,
@@ -941,6 +943,8 @@ ${allPages
             images: updated.images,
             stripeProductId: updated.stripeProductId,
             stripePriceId: updated.stripePriceId,
+          }, async (spId) => {
+            await storage.updateProduct(updated.id, { stripeProductId: spId });
           });
           await storage.updateProduct(updated.id, {
             stripeProductId,
@@ -979,6 +983,8 @@ ${allPages
             images: product.images,
             stripeProductId: product.stripeProductId,
             stripePriceId: product.stripePriceId,
+          }, async (spId) => {
+            await storage.updateProduct(product.id, { stripeProductId: spId });
           });
           await storage.updateProduct(product.id, {
             stripeProductId,
@@ -1076,6 +1082,8 @@ ${allPages
         images: product.images,
         stripeProductId: product.stripeProductId,
         stripePriceId: product.stripePriceId,
+      }, async (spId) => {
+        await storage.updateProduct(id, { stripeProductId: spId });
       });
       await storage.updateProduct(id, {
         stripeProductId,

@@ -154,7 +154,7 @@ export async function syncProductToStripe(product: {
   images: string[];
   stripeProductId?: string | null;
   stripePriceId?: string | null;
-}): Promise<{ stripeProductId: string; stripePriceId: string; syncedAt: Date }> {
+}, onProductCreated?: (stripeProductId: string) => Promise<void>): Promise<{ stripeProductId: string; stripePriceId: string; syncedAt: Date }> {
   const stripe = getStripeClient();
   const priceCents = Math.round(Number(product.price) * 100);
 
@@ -229,6 +229,13 @@ export async function syncProductToStripe(product: {
       metadata: { resilientProductId: product.id },
     });
     stripeProductId = stripeProduct.id;
+
+    // Persist stripeProductId to DB immediately before price creation.
+    // If price creation fails below, the next sync will find this product
+    // via stripeProductId (or metadata search) and reuse it — no duplicate.
+    if (onProductCreated) {
+      await onProductCreated(stripeProductId);
+    }
 
     const stripePrice = await stripe.prices.create({
       product: stripeProductId,
