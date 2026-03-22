@@ -1,0 +1,56 @@
+Add three new features to the admin dashboard and storefront. Here are the full requirements:
+
+New Arrivals — Editable in Dashboard:
+
+Add a "New Arrivals" section in the admin dashboard where the admin can manage which products appear as new arrivals on the homepage
+Admin should be able to:
+
+Select which products to feature as new arrivals from a dropdown or searchable list of all products
+Set how many new arrivals to display
+Reorder the new arrivals by drag and drop
+Remove a product from new arrivals
+Add a new arrival with one click
+
+
+The homepage new arrivals section should pull dynamically from whatever is set in the dashboard
+Changes should reflect on the homepage immediately after saving
+
+
+Homepage Photo Grid — 8 Images Instead of 5:
+
+Update the photo/image grid section towards the bottom of the homepage to display 8 images instead of 5
+Add 3 new image slots to the existing grid
+Make the grid layout look clean and balanced with 8 images — use a 4x2 grid layout on desktop and 2x4 on mobile
+Make all 8 image slots editable from the admin dashboard so images can be changed without touching code
+If any of the 3 new slots are empty show a placeholder in the admin but do not show empty slots on the live site
+
+
+Preorder Mode — Dashboard Toggle with Cart Notice:
+
+Add a Preorder Mode toggle in the admin dashboard that can be turned on and off with one click
+When Preorder is ON:
+
+Show a bold, noticeable banner or badge on every product page and in the cart that says something like "⚠️ PREORDER — Ships in 4-6 weeks" or similar
+Show the preorder notice at the top of the checkout page as well
+The notice should be impossible to miss — use a bright color like yellow or red against the dark site background
+Include the extended shipping timeframe in the notice (admin should be able to edit this timeframe in the dashboard)
+Send an email to the customer after purchase mentioning it is a preorder and including the estimated shipping timeframe
+
+
+When Preorder is OFF:
+
+All preorder notices and banners disappear completely from the site
+Normal shipping times apply
+
+
+Admin Dashboard Preorder Settings should include:
+
+On/Off toggle
+Editable shipping timeframe text (e.g. '4-6 weeks', '6-8 weeks')
+Editable preorder message that shows on the site
+Save button
+
+
+
+
+Do not break any existing homepage, cart, checkout, or product functionality — only add these three features"**

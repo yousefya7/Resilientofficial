@@ -46,7 +46,7 @@ import {
   Package, Users, ShoppingCart, AlertTriangle,
   Download, DollarSign, Plus, Pencil, Trash2, X, Eye, EyeOff, Save, Upload, Loader2,
   CheckSquare, Square, Layers, Shield, Lock, Settings, GripVertical, Mail, Search, Phone, MapPin, Receipt,
-  Truck, ChevronDown, XCircle, RefreshCw, Zap, Copy, TriangleAlert
+  Truck, ChevronDown, XCircle, RefreshCw, Zap, Copy, TriangleAlert, Star, Image
 } from "lucide-react";
 import {
   Select,
@@ -74,8 +74,9 @@ type AdminData = {
 };
 
 import { PromoCodesTab } from "./PromoCodesTab";
+import { NewArrivalsTab } from "./NewArrivalsTab";
 
-type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings" | "contacts";
+type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings" | "contacts" | "new-arrivals";
 
 type ProductForm = {
   name: string;
@@ -1090,6 +1091,7 @@ export default function AdminDashboard() {
   const tabs: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "inventory", label: "Inventory" },
+    { key: "new-arrivals", label: "New Arrivals" },
     { key: "categories", label: "Categories" },
     { key: "customers", label: "Customers" },
     { key: "orders", label: "Orders" },
@@ -2155,6 +2157,8 @@ export default function AdminDashboard() {
           <OrdersTab orders={data?.orders || []} customers={data?.customers || []} />
         )}
 
+        {tab === "new-arrivals" && <NewArrivalsTab />}
+
         {tab === "categories" && <CategoryManager categories={data?.categories || []} />}
 
         {tab === "contacts" && <ContactSubmissionsTab />}
@@ -2976,24 +2980,42 @@ function SettingsPanel() {
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
 
+  // Preorder state
+  const [preorderMode, setPreorderMode] = useState(false);
+  const [preorderTimeframe, setPreorderTimeframe] = useState("4-6 weeks");
+  const [preorderMessage, setPreorderMessage] = useState("⚠️ PREORDER — Ships in {timeframe}");
+  const [preorderDirty, setPreorderDirty] = useState(false);
+
+  // Gallery state
+  const [galleryImages, setGalleryImages] = useState<string[]>(Array(8).fill(""));
+  const [galleryDirty, setGalleryDirty] = useState(false);
+
   const { data: settings, isLoading } = useQuery<{
     maintenanceMode: boolean;
     sitePassword: string;
+    preorderMode: boolean;
+    preorderTimeframe: string;
+    preorderMessage: string;
+    galleryImages: string[];
+    newArrivalsIds: string[];
   }>({
     queryKey: ["/api/admin/settings"],
   });
 
   const settingsMutation = useMutation({
-    mutationFn: async (updates: { maintenanceMode?: boolean; sitePassword?: string }) => {
+    mutationFn: async (updates: Record<string, any>) => {
       const res = await apiRequest("PATCH", "/api/admin/settings", updates);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/public"] });
       if (data.sitePassword) {
         setPasswordInput(data.sitePassword);
         setPasswordDirty(false);
       }
+      setPreorderDirty(false);
+      setGalleryDirty(false);
       toast({ title: "Settings Updated", description: "Changes saved successfully." });
     },
     onError: (err: any) => {
@@ -3006,6 +3028,22 @@ function SettingsPanel() {
       setPasswordInput(settings.sitePassword);
     }
   }, [settings?.sitePassword, passwordDirty]);
+
+  useEffect(() => {
+    if (settings && !preorderDirty) {
+      setPreorderMode(settings.preorderMode ?? false);
+      setPreorderTimeframe(settings.preorderTimeframe || "4-6 weeks");
+      setPreorderMessage(settings.preorderMessage || "⚠️ PREORDER — Ships in {timeframe}");
+    }
+  }, [settings?.preorderMode, settings?.preorderTimeframe, settings?.preorderMessage, preorderDirty]);
+
+  useEffect(() => {
+    if (settings?.galleryImages && !galleryDirty) {
+      const imgs = [...settings.galleryImages];
+      while (imgs.length < 8) imgs.push("");
+      setGalleryImages(imgs.slice(0, 8));
+    }
+  }, [settings?.galleryImages, galleryDirty]);
 
   if (isLoading) {
     return (
@@ -3025,6 +3063,154 @@ function SettingsPanel() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
+      {/* Preorder Mode */}
+      <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-preorder">
+        <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
+          <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <h3 className="font-display text-sm tracking-luxury uppercase">Preorder Mode</h3>
+          <div className={`ml-auto flex items-center gap-2 text-[10px] font-mono tracking-luxury uppercase ${preorderMode ? "text-amber-400" : "text-muted-foreground/50"}`}>
+            <div className={`w-2 h-2 ${preorderMode ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
+            {preorderMode ? "ACTIVE" : "OFF"}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-1">
+                Preorder Mode
+              </label>
+              <p className="text-[11px] text-muted-foreground/60 font-mono">
+                {preorderMode
+                  ? "Preorder banners are visible on product pages, cart, and checkout."
+                  : "Preorder is off — no banners are shown."}
+              </p>
+            </div>
+            <button
+              onClick={() => { setPreorderMode(!preorderMode); setPreorderDirty(true); }}
+              className={`relative w-14 h-7 border-2 transition-all duration-300 flex items-center ${
+                preorderMode
+                  ? "bg-amber-400/20 border-amber-400"
+                  : "bg-muted/20 border-border"
+              }`}
+              data-testid="toggle-preorder-mode"
+            >
+              <div
+                className={`w-5 h-5 transition-all duration-300 ${
+                  preorderMode
+                    ? "ml-[26px] bg-amber-400"
+                    : "ml-0.5 bg-muted-foreground/40"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div>
+            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
+              Shipping Timeframe
+            </label>
+            <Input
+              value={preorderTimeframe}
+              onChange={(e) => { setPreorderTimeframe(e.target.value); setPreorderDirty(true); }}
+              placeholder="e.g. 4-6 weeks"
+              className="border-2 font-mono text-sm h-10 text-white bg-transparent max-w-xs"
+              data-testid="input-preorder-timeframe"
+            />
+            <p className="text-[10px] text-muted-foreground/50 font-mono mt-1">
+              Use &#123;timeframe&#125; in the message below to insert this value.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
+              Preorder Message
+            </label>
+            <Input
+              value={preorderMessage}
+              onChange={(e) => { setPreorderMessage(e.target.value); setPreorderDirty(true); }}
+              placeholder="⚠️ PREORDER — Ships in {timeframe}"
+              className="border-2 font-mono text-sm h-10 text-white bg-transparent"
+              data-testid="input-preorder-message"
+            />
+            {preorderMode && (
+              <div className="mt-2 bg-amber-400/10 border border-amber-400/30 px-3 py-2">
+                <p className="text-xs text-amber-400 font-mono">
+                  Preview: {preorderMessage.replace("{timeframe}", preorderTimeframe)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t-2 border-border/20 pt-4 flex justify-end">
+            <Button
+              onClick={() => settingsMutation.mutate({ preorderMode, preorderTimeframe, preorderMessage })}
+              disabled={settingsMutation.isPending || !preorderDirty}
+              className="text-[10px] tracking-luxury uppercase h-10 border-2 border-amber-500 bg-amber-500 text-black btn-liquid no-default-hover-elevate no-default-active-elevate font-bold"
+              data-testid="button-save-preorder"
+            >
+              {settingsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+              Save Preorder Settings
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Gallery Images */}
+      <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-gallery-images">
+        <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
+          <Image className="w-4 h-4 text-accent-blue" />
+          <h3 className="font-display text-sm tracking-luxury uppercase">Homepage Photo Grid</h3>
+          <span className="ml-auto text-xs text-muted-foreground font-mono">8 slots (4×2)</span>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-xs text-muted-foreground font-mono">
+            Enter image URLs for each slot. Empty slots won't appear on the live site.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {galleryImages.map((imgUrl, idx) => (
+              <div key={idx} className="space-y-1">
+                <label className="text-[10px] font-mono tracking-luxury uppercase text-muted-foreground/60">
+                  Image {idx + 1}
+                </label>
+                <div className="flex gap-2 items-center">
+                  {imgUrl && (
+                    <div className="w-10 h-10 flex-shrink-0 overflow-hidden border border-border/30">
+                      <img src={imgUrl} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <Input
+                    value={imgUrl}
+                    onChange={(e) => {
+                      const newImgs = [...galleryImages];
+                      newImgs[idx] = e.target.value;
+                      setGalleryImages(newImgs);
+                      setGalleryDirty(true);
+                    }}
+                    placeholder="/images/gallery/your-photo.jpg"
+                    className="border-2 font-mono text-xs h-10 text-white bg-transparent flex-1"
+                    data-testid={`input-gallery-image-${idx}`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t-2 border-border/20 pt-4 flex justify-end">
+            <Button
+              onClick={() => settingsMutation.mutate({ galleryImages })}
+              disabled={settingsMutation.isPending || !galleryDirty}
+              className="text-[10px] tracking-luxury uppercase h-10 border-2 border-accent-blue bg-accent-blue text-white btn-liquid no-default-hover-elevate no-default-active-elevate"
+              data-testid="button-save-gallery"
+            >
+              {settingsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+              Save Gallery Images
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Site Access Controls */}
       <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-site-access">
         <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
           <Shield className="w-4 h-4 text-accent-blue" />

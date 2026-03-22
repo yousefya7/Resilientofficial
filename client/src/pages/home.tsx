@@ -10,6 +10,8 @@ import { Marquee } from "@/components/marquee";
 import type { ProductWithStock } from "@shared/schema";
 import { useAudio } from "@/lib/audio";
 import { useSEO } from "@/hooks/use-seo";
+import { usePublicSettings } from "@/hooks/use-public-settings";
+import { PreorderBanner } from "@/components/preorder-banner";
 
 export default function Home() {
   useSEO({
@@ -28,9 +30,11 @@ export default function Home() {
     },
   });
 
-  const { data: products } = useQuery<ProductWithStock[]>({
-    queryKey: ["/api/products"],
+  const { data: newArrivals } = useQuery<ProductWithStock[]>({
+    queryKey: ["/api/settings/new-arrivals"],
   });
+
+  const { data: publicSettings } = usePublicSettings();
 
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress: heroProgress } = useScroll({
@@ -48,10 +52,25 @@ export default function Home() {
   const collectionY = useTransform(collectionProgress, [0, 1], ["-10%", "10%"]);
   const { muted, toggleMute } = useAudio();
 
-  const featured = products?.filter((p) => p.featured)?.slice(0, 4) || [];
+  const DEFAULT_GALLERY = [
+    "/images/gallery/jacket-graffiti-duo.jpg",
+    "/images/gallery/chat-portrait-tee.jpg",
+    "/images/gallery/jacket-garage-action.jpg",
+    "/images/gallery/chat-stairs-duo.jpg",
+    "/images/gallery/jacket-sidewalk-duo.jpg",
+    "",
+    "",
+    "",
+  ];
+  const galleryImages = publicSettings?.galleryImages ?? DEFAULT_GALLERY;
+  const visibleGallery = galleryImages.filter((img) => !!img);
+
+  const displayArrivals = newArrivals?.slice(0, 4) || [];
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-home">
+      <PreorderBanner />
+
       <section ref={heroRef} className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <motion.div className="absolute inset-0" style={{ y: heroY, scale: heroScale }}>
           <img
@@ -121,49 +140,52 @@ export default function Home() {
         </motion.div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        <FadeInSection>
-          <p className="text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-3">
-            Curated
-          </p>
-          <h2 className="font-display text-3xl tracking-luxury uppercase mb-16">
-            <SplitText text="THE EDIT" />
-          </h2>
-        </FadeInSection>
+      {/* NEW ARRIVALS — dynamic from admin */}
+      {displayArrivals.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-24">
+          <FadeInSection>
+            <p className="text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-3">
+              New In
+            </p>
+            <h2 className="font-display text-3xl tracking-luxury uppercase mb-16">
+              <SplitText text="NEW ARRIVALS" />
+            </h2>
+          </FadeInSection>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {featured.map((product, i) => (
-            <FadeInSection key={product.id} delay={i * 0.1}>
-              <Link href={`/product/${product.id}`}>
-                <div className="group cursor-pointer" data-testid={`card-featured-product-${product.id}`}>
-                  <div className="aspect-[2/3] bg-muted mb-4 overflow-hidden relative border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-                      <div className="bg-accent-blue text-white text-center py-3 text-xs tracking-luxury uppercase font-bold">
-                        Quick Add
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {displayArrivals.map((product, i) => (
+              <FadeInSection key={product.id} delay={i * 0.1}>
+                <Link href={`/product/${product.id}`}>
+                  <div className="group cursor-pointer" data-testid={`card-new-arrival-${product.id}`}>
+                    <div className="aspect-[2/3] bg-muted mb-4 overflow-hidden relative border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300">
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                        <div className="bg-accent-blue text-white text-center py-3 text-xs tracking-luxury uppercase font-bold">
+                          Shop Now
+                        </div>
                       </div>
                     </div>
+                    <h3 className="text-sm font-bold tracking-wide uppercase">{product.name}</h3>
+                    <p className="text-muted-foreground text-sm mt-1 font-mono">
+                      ${Number(product.price).toFixed(0)}
+                    </p>
                   </div>
-                  <h3 className="text-sm font-bold tracking-wide uppercase">{product.name}</h3>
-                  <p className="text-muted-foreground text-sm mt-1 font-mono">
-                    ${Number(product.price).toFixed(0)}
-                  </p>
-                </div>
-              </Link>
-            </FadeInSection>
-          ))}
-        </div>
-      </section>
+                </Link>
+              </FadeInSection>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="max-w-7xl mx-auto px-6 pb-24">
         <FadeInSection>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
             <div ref={collectionRef} className="md:col-span-8 relative aspect-[16/9] overflow-hidden group border-2 border-border/50 hover:border-accent-blue/30 transition-colors duration-300">
-              <Link href="/shop" className="absolute inset-0 z-10" aria-label="Shop New Arrivals" />
+              <Link href="/shop" className="absolute inset-0 z-10" aria-label="Shop Collection" />
               <motion.img
                 src="/images/hero-main.JPG"
                 alt="New Arrivals"
@@ -173,7 +195,7 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
               <div className="absolute bottom-8 left-8 pointer-events-none">
                 <h3 className="text-white font-display text-2xl tracking-luxury uppercase">
-                  <SplitText text="NEW ARRIVALS" />
+                  <SplitText text="THE COLLECTION" />
                 </h3>
               </div>
             </div>
@@ -241,70 +263,55 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-t-2 border-border/30 py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <FadeInSection>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
-              <div>
-                <p className="text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-3">
-                  Visual
-                </p>
-                <h2 className="font-display text-3xl tracking-luxury uppercase">
-                  <SplitText text="THE GALLERY" />
-                </h2>
+      {/* PHOTO GRID — 8 images, 4x2 layout, driven from admin */}
+      {visibleGallery.length > 0 && (
+        <section className="border-t-2 border-border/30 py-24 px-6">
+          <div className="max-w-7xl mx-auto">
+            <FadeInSection>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+                <div>
+                  <p className="text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-3">
+                    Visual
+                  </p>
+                  <h2 className="font-display text-3xl tracking-luxury uppercase">
+                    <SplitText text="THE GALLERY" />
+                  </h2>
+                </div>
+                <Link href="/gallery">
+                  <Button
+                    variant="outline"
+                    className="border-2 border-border text-xs tracking-luxury uppercase px-6 h-10 btn-liquid no-default-hover-elevate no-default-active-elevate hover:border-accent-blue transition-colors duration-300"
+                    data-testid="button-view-gallery"
+                  >
+                    View All
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
               </div>
-              <Link href="/gallery">
-                <Button
-                  variant="outline"
-                  className="border-2 border-border text-xs tracking-luxury uppercase px-6 h-10 btn-liquid no-default-hover-elevate no-default-active-elevate hover:border-accent-blue transition-colors duration-300"
-                  data-testid="button-view-gallery"
-                >
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
-            </div>
-          </FadeInSection>
+            </FadeInSection>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[200px] md:auto-rows-[250px]">
-            <FadeInSection delay={0}>
-              <Link href="/gallery">
-                <div className="row-span-2 h-full overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300" data-testid="gallery-teaser-0">
-                  <img src="/images/gallery/jacket-graffiti-duo.jpg" alt="Jacket Drop" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" loading="lazy" />
-                </div>
-              </Link>
-            </FadeInSection>
-            <FadeInSection delay={0.1}>
-              <Link href="/gallery">
-                <div className="h-full overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300" data-testid="gallery-teaser-1">
-                  <img src="/images/gallery/chat-portrait-tee.jpg" alt="Being Resilient" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" loading="lazy" />
-                </div>
-              </Link>
-            </FadeInSection>
-            <FadeInSection delay={0.15}>
-              <Link href="/gallery">
-                <div className="col-span-2 h-full overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300" data-testid="gallery-teaser-2">
-                  <img src="/images/gallery/jacket-garage-action.jpg" alt="Garage Session" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" loading="lazy" />
-                </div>
-              </Link>
-            </FadeInSection>
-            <FadeInSection delay={0.2}>
-              <Link href="/gallery">
-                <div className="h-full overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300" data-testid="gallery-teaser-3">
-                  <img src="/images/gallery/chat-stairs-duo.jpg" alt="Fire Escape" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" loading="lazy" />
-                </div>
-              </Link>
-            </FadeInSection>
-            <FadeInSection delay={0.25}>
-              <Link href="/gallery">
-                <div className="col-span-2 h-full overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300" data-testid="gallery-teaser-4">
-                  <img src="/images/gallery/jacket-sidewalk-duo.jpg" alt="Sidewalk Duo" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" loading="lazy" />
-                </div>
-              </Link>
-            </FadeInSection>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {visibleGallery.slice(0, 8).map((imgSrc, i) => (
+                <FadeInSection key={i} delay={i * 0.05}>
+                  <Link href="/gallery">
+                    <div
+                      className="aspect-square overflow-hidden group cursor-pointer border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300"
+                      data-testid={`gallery-teaser-${i}`}
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`Gallery image ${i + 1}`}
+                        className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    </div>
+                  </Link>
+                </FadeInSection>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <footer className="border-t-2 border-border/50 py-16 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">

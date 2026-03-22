@@ -16,6 +16,7 @@ import { useCart } from "@/lib/cart";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowRight, CheckCircle, Lock, ArrowLeft, Loader2, Tag, X, Check } from "lucide-react";
 import { useSEO } from "@/hooks/use-seo";
+import { PreorderBanner } from "@/components/preorder-banner";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
@@ -576,6 +577,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-checkout">
+      <PreorderBanner />
       <div className="max-w-5xl mx-auto px-6 pt-32 pb-24">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p className="text-accent-blue/70 text-xs font-mono tracking-luxury uppercase mb-3">Secure Checkout</p>

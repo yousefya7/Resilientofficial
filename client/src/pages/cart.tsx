@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, X, ArrowRight } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useSEO } from "@/hooks/use-seo";
+import { PreorderBanner } from "@/components/preorder-banner";
 
 export default function CartPage() {
   useSEO({
@@ -15,6 +16,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-cart">
+      <PreorderBanner />
       <div className="max-w-4xl mx-auto px-6 pt-32 pb-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

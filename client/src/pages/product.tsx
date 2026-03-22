@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart";
 import type { ProductWithStock } from "@shared/schema";
 import { useSEO } from "@/hooks/use-seo";
+import { PreorderBanner } from "@/components/preorder-banner";
 
 const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 
@@ -162,6 +163,7 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-product">
+      <PreorderBanner />
       <div className="max-w-6xl mx-auto px-6 pt-32 pb-24">
         <Link href="/shop">
           <button className="flex items-center gap-2 text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-12 transition-colors hover:text-accent-blue" data-testid="link-back-to-shop">

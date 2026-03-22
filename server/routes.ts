@@ -423,7 +423,11 @@ ${allPages
         // if (customerPhone) {
         //   await sendOrderConfirmationSms(customerPhone, customerName, order.id, total);
         // }
-        await sendOrderConfirmationEmail(customerEmail, customerName, order.id, resolvedItems, total, shippingAddress as ShippingAddress);
+        const preorderSettingRow = await pool.query("SELECT value FROM site_settings WHERE key = 'preorder_mode'");
+        const isPreorder = preorderSettingRow.rows[0]?.value === "true";
+        const preorderTimeframeRow = await pool.query("SELECT value FROM site_settings WHERE key = 'preorder_timeframe'");
+        const preorderTimeframe = preorderTimeframeRow.rows[0]?.value || "4-6 weeks";
+        await sendOrderConfirmationEmail(customerEmail, customerName, order.id, resolvedItems, total, shippingAddress as ShippingAddress, { isPreorder, timeframe: preorderTimeframe });
       } catch (e) {
         console.error("[Notifications] Order confirmation error:", e);
       }
@@ -605,18 +609,85 @@ ${allPages
     });
   });
 
+  // Public settings endpoint (no auth required)
+  app.get("/api/settings/public", async (_req, res) => {
+    const result = await pool.query("SELECT key, value FROM site_settings");
+    const settings: Record<string, string> = {};
+    result.rows.forEach((r: any) => { settings[r.key] = r.value; });
+    const DEFAULT_GALLERY = [
+      "/images/gallery/jacket-graffiti-duo.jpg",
+      "/images/gallery/chat-portrait-tee.jpg",
+      "/images/gallery/jacket-garage-action.jpg",
+      "/images/gallery/chat-stairs-duo.jpg",
+      "/images/gallery/jacket-sidewalk-duo.jpg",
+      "", "", "",
+    ];
+    let galleryImages = DEFAULT_GALLERY;
+    if (settings.homepage_gallery_images) {
+      try { galleryImages = JSON.parse(settings.homepage_gallery_images); } catch {}
+    }
+    let newArrivalsIds: string[] = [];
+    if (settings.new_arrivals_ids) {
+      try { newArrivalsIds = JSON.parse(settings.new_arrivals_ids); } catch {}
+    }
+    res.json({
+      preorderMode: settings.preorder_mode === "true",
+      preorderTimeframe: settings.preorder_timeframe || "4-6 weeks",
+      preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
+      galleryImages,
+      newArrivalsIds,
+    });
+  });
+
+  // New arrivals products endpoint
+  app.get("/api/settings/new-arrivals", async (_req, res) => {
+    const result = await pool.query("SELECT value FROM site_settings WHERE key = 'new_arrivals_ids'");
+    let ids: string[] = [];
+    if (result.rows[0]) {
+      try { ids = JSON.parse(result.rows[0].value); } catch {}
+    }
+    if (ids.length === 0) {
+      const products = await storage.getProducts();
+      return res.json(products.filter((p: any) => p.featured).slice(0, 4));
+    }
+    const allProducts = await storage.getProducts();
+    const ordered = ids.map((id: string) => allProducts.find((p: any) => String(p.id) === String(id))).filter(Boolean);
+    res.json(ordered);
+  });
+
   app.get("/api/admin/settings", requireAdmin, async (_req, res) => {
     const result = await pool.query("SELECT key, value FROM site_settings");
     const settings: Record<string, string> = {};
     result.rows.forEach((r: any) => { settings[r.key] = r.value; });
+    const DEFAULT_GALLERY = [
+      "/images/gallery/jacket-graffiti-duo.jpg",
+      "/images/gallery/chat-portrait-tee.jpg",
+      "/images/gallery/jacket-garage-action.jpg",
+      "/images/gallery/chat-stairs-duo.jpg",
+      "/images/gallery/jacket-sidewalk-duo.jpg",
+      "", "", "",
+    ];
+    let galleryImages = DEFAULT_GALLERY;
+    if (settings.homepage_gallery_images) {
+      try { galleryImages = JSON.parse(settings.homepage_gallery_images); } catch {}
+    }
+    let newArrivalsIds: string[] = [];
+    if (settings.new_arrivals_ids) {
+      try { newArrivalsIds = JSON.parse(settings.new_arrivals_ids); } catch {}
+    }
     res.json({
       maintenanceMode: settings.maintenance_mode !== "false",
       sitePassword: settings.site_password || "resilient2026",
+      preorderMode: settings.preorder_mode === "true",
+      preorderTimeframe: settings.preorder_timeframe || "4-6 weeks",
+      preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
+      galleryImages,
+      newArrivalsIds,
     });
   });
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
-    const { maintenanceMode, sitePassword } = req.body;
+    const { maintenanceMode, sitePassword, preorderMode, preorderTimeframe, preorderMessage, galleryImages, newArrivalsIds } = req.body;
     if (typeof maintenanceMode === "boolean") {
       await pool.query(
         "INSERT INTO site_settings (key, value) VALUES ('maintenance_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
@@ -639,12 +710,63 @@ ${allPages
         `DELETE FROM session WHERE sess::text LIKE '%"unlocked":true%' AND sess::text NOT LIKE '%"admin":true%'`
       );
     }
+    if (typeof preorderMode === "boolean") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('preorder_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [String(preorderMode)]
+      );
+    }
+    if (typeof preorderTimeframe === "string") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('preorder_timeframe', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [preorderTimeframe.trim()]
+      );
+    }
+    if (typeof preorderMessage === "string") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('preorder_message', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [preorderMessage.trim()]
+      );
+    }
+    if (Array.isArray(galleryImages)) {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('homepage_gallery_images', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [JSON.stringify(galleryImages)]
+      );
+    }
+    if (Array.isArray(newArrivalsIds)) {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('new_arrivals_ids', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [JSON.stringify(newArrivalsIds)]
+      );
+    }
     const result = await pool.query("SELECT key, value FROM site_settings");
     const settings: Record<string, string> = {};
     result.rows.forEach((r: any) => { settings[r.key] = r.value; });
+    const DEFAULT_GALLERY = [
+      "/images/gallery/jacket-graffiti-duo.jpg",
+      "/images/gallery/chat-portrait-tee.jpg",
+      "/images/gallery/jacket-garage-action.jpg",
+      "/images/gallery/chat-stairs-duo.jpg",
+      "/images/gallery/jacket-sidewalk-duo.jpg",
+      "", "", "",
+    ];
+    let galleryImagesOut = DEFAULT_GALLERY;
+    if (settings.homepage_gallery_images) {
+      try { galleryImagesOut = JSON.parse(settings.homepage_gallery_images); } catch {}
+    }
+    let newArrivalsIdsOut: string[] = [];
+    if (settings.new_arrivals_ids) {
+      try { newArrivalsIdsOut = JSON.parse(settings.new_arrivals_ids); } catch {}
+    }
     res.json({
       maintenanceMode: settings.maintenance_mode !== "false",
       sitePassword: settings.site_password || "resilient2026",
+      preorderMode: settings.preorder_mode === "true",
+      preorderTimeframe: settings.preorder_timeframe || "4-6 weeks",
+      preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
+      galleryImages: galleryImagesOut,
+      newArrivalsIds: newArrivalsIdsOut,
     });
   });
 

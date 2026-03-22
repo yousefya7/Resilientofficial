@@ -156,7 +156,8 @@ export async function sendOrderConfirmationEmail(
   orderId: string,
   items: { name: string; size: string; quantity: number; price: number }[],
   total: string,
-  shippingAddress?: { street?: string; city?: string; state?: string; zip?: string }
+  shippingAddress?: { street?: string; city?: string; state?: string; zip?: string },
+  preorder?: { isPreorder: boolean; timeframe: string }
 ): Promise<void> {
   const shortId = orderId.slice(0, 8).toUpperCase();
   const firstName = customerName.split(" ")[0];
@@ -181,6 +182,22 @@ export async function sendOrderConfirmationEmail(
     ? [shippingAddress.street, shippingAddress.city, shippingAddress.state, shippingAddress.zip].filter(Boolean).join(", ")
     : "—";
 
+  const preorderBlock = preorder?.isPreorder ? `
+    <!-- Preorder Notice -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="background-color:#7c3d00;border:2px solid #f59e0b;padding:16px 20px;">
+          <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#f59e0b;font-weight:700;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">⚠️ Preorder Notice</p>
+          <p style="margin:0;font-size:14px;color:#ffffff;font-weight:700;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+            This is a preorder — your items will ship in approximately <strong>${preorder.timeframe}</strong>.
+          </p>
+          <p style="margin:8px 0 0;font-size:12px;color:#fcd34d;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+            We'll send you a shipping confirmation email as soon as your order is on its way.
+          </p>
+        </td>
+      </tr>
+    </table>` : "";
+
   const content = `
     <!-- Greeting -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
@@ -191,11 +208,13 @@ export async function sendOrderConfirmationEmail(
             Thank you, ${firstName}.
           </h1>
           <p style="margin:0;font-size:14px;color:#888;line-height:1.6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-            Your order is confirmed. We'll send you another email as soon as it ships.
+            Your order is confirmed. ${preorder?.isPreorder ? `This is a <strong style="color:#f59e0b;">preorder</strong> — estimated shipping: ${preorder.timeframe}.` : "We'll send you another email as soon as it ships."}
           </p>
         </td>
       </tr>
     </table>
+
+    ${preorderBlock}
 
     <!-- Order ID badge -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
