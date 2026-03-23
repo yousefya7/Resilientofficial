@@ -46,7 +46,7 @@ import {
   Package, Users, ShoppingCart, ShoppingBag, AlertTriangle,
   Download, DollarSign, Plus, Pencil, Trash2, X, Eye, EyeOff, Save, Upload, Loader2,
   CheckSquare, Square, Layers, Shield, Lock, Settings, GripVertical, Mail, Search, Phone, MapPin, Receipt,
-  Truck, ChevronDown, XCircle, RefreshCw, Zap, Copy, TriangleAlert, Star, Image, Megaphone,
+  Truck, ChevronDown, ChevronLeft, ChevronRight, XCircle, RefreshCw, Zap, Copy, TriangleAlert, Star, Image, Megaphone,
   LayoutDashboard, Menu, ArrowLeft, ArrowUpRight, BarChart3
 } from "lucide-react";
 import {
@@ -482,6 +482,16 @@ function ProductFormModal({
   isPending: boolean;
   categories: Category[];
 }) {
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  const clampedIndex = Math.min(previewIndex, Math.max(0, form.images.length - 1));
+  if (clampedIndex !== previewIndex && form.images.length > 0) {
+    setPreviewIndex(clampedIndex);
+  }
+
+  const goToPrev = () => setPreviewIndex((i) => Math.max(0, i - 1));
+  const goToNext = () => setPreviewIndex((i) => Math.min(form.images.length - 1, i + 1));
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -693,10 +703,10 @@ function ProductFormModal({
           <div>
             <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground mb-3 block">Preview</label>
             <div className="border-2 border-border/50 p-4 bg-card">
-              <div className="aspect-[3/4] bg-muted overflow-hidden mb-4 relative border-2 border-border/30">
-                {form.images[0] ? (
+              <div className="aspect-[3/4] bg-muted overflow-hidden mb-2 relative border-2 border-border/30 group">
+                {form.images[clampedIndex] ? (
                   <img
-                    src={form.images[0]}
+                    src={form.images[clampedIndex]}
                     alt={form.name || "Preview"}
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -707,7 +717,60 @@ function ProductFormModal({
                     No image
                   </div>
                 )}
+
+                {form.images.length > 1 && (
+                  <>
+                    {clampedIndex > 0 && (
+                      <button
+                        onClick={goToPrev}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                        data-testid="button-preview-prev"
+                        type="button"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    )}
+                    {clampedIndex < form.images.length - 1 && (
+                      <button
+                        onClick={goToNext}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                        data-testid="button-preview-next"
+                        type="button"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-mono px-2 py-0.5">
+                      {clampedIndex + 1} / {form.images.length}
+                    </div>
+                  </>
+                )}
               </div>
+
+              {form.images.length > 1 && (
+                <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+                  {form.images.map((url, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setPreviewIndex(i)}
+                      className={`flex-shrink-0 w-12 h-12 overflow-hidden border-2 transition-colors relative ${
+                        i === clampedIndex ? "border-accent-blue" : "border-border/40 hover:border-border"
+                      }`}
+                      data-testid={`button-preview-thumb-${i}`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
+                      {i === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-accent-blue/90 text-white text-[7px] font-mono text-center leading-tight py-px">
+                          ★
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <h3 className="text-sm font-bold tracking-wide uppercase">{form.name || "Product Name"}</h3>
               <p className="text-muted-foreground text-sm mt-1 font-mono">
                 ${form.price ? Number(form.price).toFixed(0) : "0"}
