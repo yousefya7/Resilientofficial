@@ -732,10 +732,23 @@ export default function CheckoutPage() {
                       <p className="text-muted-foreground text-xs font-mono">
                         <span className="text-accent-blue font-bold">{item.size}</span> / Qty: {item.quantity}
                       </p>
+                      {item.preorder && (
+                        <p className="text-amber-500 text-[10px] font-bold font-mono mt-0.5">
+                          ⚠ PREORDER · ~{item.preorderTimeframe || "4-6 weeks"}
+                        </p>
+                      )}
                     </div>
                     <p className="text-sm font-mono">${(Number(item.price) * item.quantity).toFixed(0)}</p>
                   </div>
                 ))}
+                {items.some((i) => i.preorder) && (
+                  <div className="border-2 border-amber-500/40 bg-amber-500/5 p-3" data-testid="banner-preorder-checkout">
+                    <p className="text-amber-400 text-[10px] font-bold tracking-luxury uppercase mb-1">⚠ Order Contains Preorder Items</p>
+                    <p className="text-amber-400/80 text-xs font-mono">
+                      {items.filter(i => i.preorder).map(i => `${i.name} (~${i.preorderTimeframe || "4-6 weeks"})`).join(" • ")}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="border-t-2 border-border/50 pt-4 space-y-2">

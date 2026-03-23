@@ -131,6 +131,9 @@ type ProductForm = {
   images: string[];
   featured: boolean;
   active: boolean;
+  preorder: boolean;
+  preorderTimeframe: string;
+  preorderMessage: string;
   stockQuantities: Record<string, number>;
 };
 
@@ -145,6 +148,9 @@ const EMPTY_FORM: ProductForm = {
   images: [""],
   featured: false,
   active: true,
+  preorder: false,
+  preorderTimeframe: "4-6 weeks",
+  preorderMessage: "",
   stockQuantities: Object.fromEntries(DEFAULT_SIZES.map((s) => [s, 0])),
 };
 
@@ -586,6 +592,49 @@ function ProductFormModal({
                 <span className="text-xs font-mono tracking-luxury uppercase">Active</span>
               </label>
             </div>
+
+            <div className={`border-2 p-4 transition-colors ${form.preorder ? "border-amber-500/60 bg-amber-500/5" : "border-border/40"}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className={`w-4 h-4 ${form.preorder ? "text-amber-400" : "text-muted-foreground/50"}`} />
+                  <span className="text-xs font-mono tracking-luxury uppercase font-bold">Preorder Mode</span>
+                  {form.preorder && <span className="text-[10px] font-mono bg-amber-500/20 text-amber-400 px-2 py-0.5 border border-amber-500/40">ACTIVE</span>}
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.preorder}
+                    onChange={(e) => setForm({ ...form, preorder: e.target.checked })}
+                    data-testid="checkbox-preorder"
+                  />
+                  <span className="text-xs font-mono">Enable</span>
+                </label>
+              </div>
+              {form.preorder && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-mono tracking-luxury uppercase text-amber-400/80 mb-1 block">Estimated Ship Time</label>
+                    <Input
+                      value={form.preorderTimeframe}
+                      onChange={(e) => setForm({ ...form, preorderTimeframe: e.target.value })}
+                      className="border-2 border-amber-500/40 font-mono text-sm bg-transparent"
+                      placeholder="e.g. 4-6 weeks"
+                      data-testid="input-preorder-timeframe"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono tracking-luxury uppercase text-amber-400/80 mb-1 block">Custom Preorder Message (optional)</label>
+                    <Input
+                      value={form.preorderMessage}
+                      onChange={(e) => setForm({ ...form, preorderMessage: e.target.value })}
+                      className="border-2 border-amber-500/40 font-mono text-sm bg-transparent"
+                      placeholder="e.g. Ships in {timeframe} — thank you for your patience"
+                      data-testid="input-preorder-message"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -613,9 +662,10 @@ function ProductFormModal({
               <p className="text-muted-foreground text-xs font-mono mt-2 line-clamp-2">
                 {form.description || "Description preview..."}
               </p>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex gap-2 flex-wrap">
                 {form.featured && <NeonBadge variant="blue">Featured</NeonBadge>}
                 {!form.active && <NeonBadge variant="red">Hidden</NeonBadge>}
+                {(form as any).preorder && <NeonBadge variant="amber">Preorder</NeonBadge>}
               </div>
             </div>
           </div>
@@ -1176,6 +1226,9 @@ export default function AdminDashboard() {
       images: product.images.length > 0 ? product.images : [""],
       featured: product.featured || false,
       active: product.active !== false,
+      preorder: (product as any).preorder || false,
+      preorderTimeframe: (product as any).preorderTimeframe || "4-6 weeks",
+      preorderMessage: (product as any).preorderMessage || "",
       stockQuantities: stockMap,
     });
     setEditingId(product.id);
@@ -1197,6 +1250,9 @@ export default function AdminDashboard() {
       images: filteredImages,
       featured: form.featured,
       active: form.active,
+      preorder: form.preorder,
+      preorderTimeframe: form.preorderTimeframe,
+      preorderMessage: form.preorderMessage,
       stockQuantities: form.stockQuantities,
     };
 
@@ -3140,6 +3196,13 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
   // Gallery state
   const [galleryImages, setGalleryImages] = useState<string[]>(Array(8).fill(""));
   const [galleryDirty, setGalleryDirty] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState<Record<number, boolean>>({});
+
+  // Collection state
+  const [collectionImage, setCollectionImage] = useState("");
+  const [collectionHeading, setCollectionHeading] = useState("THE COLLECTION");
+  const [collectionDirty, setCollectionDirty] = useState(false);
+  const [collectionUploading, setCollectionUploading] = useState(false);
 
   const { data: settings, isLoading } = useQuery<{
     maintenanceMode: boolean;
@@ -3149,6 +3212,8 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
     preorderMessage: string;
     galleryImages: string[];
     newArrivalsIds: string[];
+    collectionImage: string;
+    collectionHeading: string;
   }>({
     queryKey: ["/api/admin/settings"],
   });
@@ -3167,6 +3232,7 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
       }
       setPreorderDirty(false);
       setGalleryDirty(false);
+      setCollectionDirty(false);
       toast({ title: "Settings Updated", description: "Changes saved successfully." });
     },
     onError: (err: any) => {
@@ -3195,6 +3261,49 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
       setGalleryImages(imgs.slice(0, 8));
     }
   }, [settings?.galleryImages, galleryDirty]);
+
+  useEffect(() => {
+    if (!collectionDirty) {
+      if (settings?.collectionImage !== undefined) setCollectionImage(settings.collectionImage || "");
+      if (settings?.collectionHeading !== undefined) setCollectionHeading(settings.collectionHeading || "THE COLLECTION");
+    }
+  }, [settings?.collectionImage, settings?.collectionHeading, collectionDirty]);
+
+  const handleGalleryFileUpload = async (idx: number, file: File) => {
+    setGalleryUploading(prev => ({ ...prev, [idx]: true }));
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const newImgs = [...galleryImages];
+      newImgs[idx] = data.url;
+      setGalleryImages(newImgs);
+      setGalleryDirty(true);
+    } catch (err: any) {
+      toast({ title: "Upload Failed", description: err.message || "Could not upload image", variant: "destructive" });
+    } finally {
+      setGalleryUploading(prev => ({ ...prev, [idx]: false }));
+    }
+  };
+
+  const handleCollectionImageUpload = async (file: File) => {
+    setCollectionUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setCollectionImage(data.url);
+      setCollectionDirty(true);
+    } catch (err: any) {
+      toast({ title: "Upload Failed", description: err.message || "Could not upload image", variant: "destructive" });
+    } finally {
+      setCollectionUploading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -3325,9 +3434,18 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
                   Image {idx + 1}
                 </label>
                 <div className="flex gap-2 items-center">
-                  {imgUrl && (
-                    <div className="w-10 h-10 flex-shrink-0 overflow-hidden border border-border/30">
+                  {imgUrl ? (
+                    <div className="w-10 h-10 flex-shrink-0 overflow-hidden border border-border/30 relative group">
                       <img src={imgUrl} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => { const n = [...galleryImages]; n[idx] = ""; setGalleryImages(n); setGalleryDirty(true); }}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 transition-opacity"
+                        title="Remove"
+                      ><X className="w-3 h-3" /></button>
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 flex-shrink-0 border-2 border-dashed border-border/30 flex items-center justify-center text-muted-foreground/30">
+                      <Image className="w-4 h-4" />
                     </div>
                   )}
                   <Input
@@ -3338,10 +3456,22 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
                       setGalleryImages(newImgs);
                       setGalleryDirty(true);
                     }}
-                    placeholder="/images/gallery/your-photo.jpg"
+                    placeholder="Paste URL or upload →"
                     className="border-2 font-mono text-xs h-10 text-white bg-transparent flex-1"
                     data-testid={`input-gallery-image-${idx}`}
                   />
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleGalleryFileUpload(idx, f); e.target.value = ""; }}
+                      data-testid={`input-gallery-file-${idx}`}
+                    />
+                    <div className={`h-10 w-10 border-2 border-border/50 flex items-center justify-center transition-colors ${galleryUploading[idx] ? "opacity-50" : "hover:border-accent-blue cursor-pointer"}`}>
+                      {galleryUploading[idx] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    </div>
+                  </label>
                 </div>
               </div>
             ))}
@@ -3356,6 +3486,88 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
             >
               {settingsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
               Save Gallery Images
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* The Collection Section */}
+      <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-collection" style={{ display: section !== "all" && section !== "gallery" ? "none" : undefined }}>
+        <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
+          <Image className="w-4 h-4 text-accent-blue" />
+          <h3 className="font-display text-sm tracking-luxury uppercase">The Collection — Homepage Feature</h3>
+        </div>
+        <div className="p-6 space-y-6">
+          <p className="text-xs text-muted-foreground font-mono">
+            Controls the large featured image and heading on the homepage collection section.
+          </p>
+
+          <div>
+            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
+              Heading Text
+            </label>
+            <Input
+              value={collectionHeading}
+              onChange={(e) => { setCollectionHeading(e.target.value); setCollectionDirty(true); }}
+              placeholder="THE COLLECTION"
+              className="border-2 font-mono text-sm h-10 text-white bg-transparent max-w-sm"
+              data-testid="input-collection-heading"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
+              Featured Image
+            </label>
+            <div className="flex gap-3 items-start">
+              {collectionImage ? (
+                <div className="w-32 h-20 overflow-hidden border-2 border-border/30 flex-shrink-0 relative group">
+                  <img src={collectionImage} alt="Collection" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => { setCollectionImage(""); setCollectionDirty(true); }}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-red-400 transition-opacity"
+                  ><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <div className="w-32 h-20 border-2 border-dashed border-border/30 flex items-center justify-center text-muted-foreground/30 flex-shrink-0">
+                  <Image className="w-6 h-6" />
+                </div>
+              )}
+              <div className="flex-1 space-y-2">
+                <Input
+                  value={collectionImage}
+                  onChange={(e) => { setCollectionImage(e.target.value); setCollectionDirty(true); }}
+                  placeholder="Paste image URL or upload a file →"
+                  className="border-2 font-mono text-xs h-10 text-white bg-transparent"
+                  data-testid="input-collection-image-url"
+                />
+                <label className="cursor-pointer inline-flex items-center gap-2 border-2 border-border/50 hover:border-accent-blue px-3 h-10 text-xs font-mono tracking-luxury uppercase text-muted-foreground hover:text-accent-blue transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCollectionImageUpload(f); e.target.value = ""; }}
+                    data-testid="input-collection-image-file"
+                  />
+                  {collectionUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  {collectionUploading ? "Uploading..." : "Upload File"}
+                </label>
+                <p className="text-[10px] text-muted-foreground/50 font-mono">
+                  Falls back to /images/hero-main.JPG if left empty.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t-2 border-border/20 pt-4 flex justify-end">
+            <Button
+              onClick={() => settingsMutation.mutate({ collectionImage, collectionHeading })}
+              disabled={settingsMutation.isPending || !collectionDirty}
+              className="text-[10px] tracking-luxury uppercase h-10 border-2 border-accent-blue bg-accent-blue text-white btn-liquid no-default-hover-elevate no-default-active-elevate"
+              data-testid="button-save-collection"
+            >
+              {settingsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+              Save Collection Settings
             </Button>
           </div>
         </div>

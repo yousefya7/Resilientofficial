@@ -7,6 +7,8 @@ export type CartItem = {
   size: string;
   quantity: number;
   image: string;
+  preorder?: boolean;
+  preorderTimeframe?: string;
 };
 
 type CartContextType = {

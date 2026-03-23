@@ -153,6 +153,8 @@ export default function ProductPage() {
       size: selectedSize,
       quantity,
       image: product.images[0],
+      preorder: (product as any).preorder || false,
+      preorderTimeframe: (product as any).preorderTimeframe || "4-6 weeks",
     });
 
     toast({
@@ -345,6 +347,24 @@ export default function ProductPage() {
               >
                 Add to Cart — ${(Number(product.price) * quantity).toFixed(0)}
               </Button>
+            )}
+
+            {(product as any).preorder && (
+              <div className="mt-4 border-2 border-amber-500/60 bg-amber-500/5 p-4" data-testid="banner-preorder-product">
+                <div className="flex items-start gap-3">
+                  <span className="text-amber-400 text-lg leading-none mt-0.5">⚠</span>
+                  <div>
+                    <p className="text-amber-400 text-xs font-bold tracking-luxury uppercase mb-1">Preorder Item</p>
+                    <p className="text-white/80 text-sm leading-relaxed">
+                      {(product as any).preorderMessage
+                        ? (product as any).preorderMessage.replace("{timeframe}", (product as any).preorderTimeframe || "4-6 weeks")
+                        : `This item ships in approximately ${(product as any).preorderTimeframe || "4-6 weeks"}.`
+                      }
+                    </p>
+                    <p className="text-amber-400/60 text-xs font-mono mt-2">You'll receive a shipping confirmation as soon as it's on the way.</p>
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="mt-10 pt-10 border-t-2 border-border/50 space-y-4">

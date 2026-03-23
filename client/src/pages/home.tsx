@@ -187,15 +187,15 @@ export default function Home() {
             <div ref={collectionRef} className="md:col-span-8 relative aspect-[16/9] overflow-hidden group border-2 border-border/50 hover:border-accent-blue/30 transition-colors duration-300">
               <Link href="/shop" className="absolute inset-0 z-10" aria-label="Shop Collection" />
               <motion.img
-                src="/images/hero-main.JPG"
-                alt="New Arrivals"
+                src={publicSettings?.collectionImage || "/images/hero-main.JPG"}
+                alt="The Collection"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-pointer"
                 style={{ y: collectionY }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
               <div className="absolute bottom-8 left-8 pointer-events-none">
                 <h3 className="text-white font-display text-2xl tracking-luxury uppercase">
-                  <SplitText text="THE COLLECTION" />
+                  <SplitText text={publicSettings?.collectionHeading || "THE COLLECTION"} />
                 </h3>
               </div>
             </div>

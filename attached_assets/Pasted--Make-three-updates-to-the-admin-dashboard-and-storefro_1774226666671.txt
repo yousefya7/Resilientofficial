@@ -1,0 +1,58 @@
+"Make three updates to the admin dashboard and storefront. Here are the full requirements:
+
+Preorder — Per Product Instead of Site Wide:
+
+Remove the global preorder toggle completely
+Instead add a Preorder toggle on each individual product in the admin dashboard
+Each product should have:
+
+A preorder on/off toggle
+An editable estimated shipping timeframe field (e.g. '4-6 weeks', '6-8 weeks') specific to that product
+An editable preorder message specific to that product
+
+
+When a product has preorder ON:
+
+Show a bold noticeable preorder badge on that specific product card on the shop page
+Show a clear preorder notice on that product's detail page
+Show a preorder warning on that item in the cart and checkout
+Include the estimated shipping timeframe in all notices
+Send the customer a post purchase email mentioning which specific items are preorder and their estimated ship times
+
+
+When a product has preorder OFF:
+
+Behaves completely normally with no preorder notices
+
+
+Multiple products can be on preorder at the same time independently of each other
+
+
+Homepage Images — Upload via File Instead of Just URL:
+
+Update all 8 homepage image slots in the admin dashboard to support both:
+
+File upload — admin can click and upload an image directly from their computer/documents
+URL link — admin can still paste an image URL if preferred
+
+
+Uploaded images should be stored in persistent cloud storage (Cloudinary or existing image storage)
+Show a live preview of the image in the admin after uploading or entering a URL
+Make it clear which upload method is being used with a toggle or tab between Upload File and Enter URL
+
+
+The Collection Section — Editable Image in Dashboard:
+
+Add a dedicated section in the admin dashboard under Store Settings called 'The Collection'
+Admin should be able to update the image that appears in The Collection section on the homepage by either:
+
+Uploading an image directly from their computer
+Entering an image URL
+
+
+Show a live preview of the current Collection image in the admin
+Changes should reflect on the homepage immediately after saving
+Also allow editing of any text or heading that appears in The Collection section
+
+
+Do not break any existing product, homepage, cart, checkout, or preorder functionality — only add and update these features"**

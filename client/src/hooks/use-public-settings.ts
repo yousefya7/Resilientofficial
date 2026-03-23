@@ -6,6 +6,8 @@ export type PublicSettings = {
   preorderMessage: string;
   galleryImages: string[];
   newArrivalsIds: string[];
+  collectionImage: string;
+  collectionHeading: string;
 };
 
 export function usePublicSettings() {

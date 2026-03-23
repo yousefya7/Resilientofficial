@@ -92,6 +92,8 @@ export default function Shop() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filtered.map((product, i) => {
               const soldOut = isSoldOut(product);
+              const isPreorder = (product as any).preorder === true;
+              const preorderTimeframe = (product as any).preorderTimeframe || "4-6 weeks";
               return (
                 <FadeInSection key={product.id} delay={i * 0.05}>
                   <Link href={`/product/${product.id}`}>
@@ -102,6 +104,16 @@ export default function Shop() {
                           alt={product.name}
                           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${soldOut ? "grayscale-[80%] opacity-60" : ""}`}
                         />
+                        {isPreorder && !soldOut && (
+                          <div className="absolute top-3 left-3 pointer-events-none" data-testid={`badge-preorder-${product.id}`}>
+                            <div className="bg-amber-500 border-2 border-amber-400 px-3 py-1 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+                              <span className="text-black text-[10px] font-bold tracking-[0.2em] uppercase">⚠ PREORDER</span>
+                            </div>
+                            <div className="bg-black/80 px-2 py-0.5 mt-0.5">
+                              <span className="text-amber-400 text-[9px] font-mono">Ships ~{preorderTimeframe}</span>
+                            </div>
+                          </div>
+                        )}
                         {soldOut && (
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="bg-red-700 border-2 border-red-500 px-6 py-2 -rotate-12 shadow-[0_0_40px_rgba(185,28,28,0.5)]" data-testid={`badge-sold-out-${product.id}`}>
@@ -126,6 +138,7 @@ export default function Shop() {
                       <h3 className={`text-sm font-bold tracking-wide uppercase ${soldOut ? "text-muted-foreground" : ""}`}>{product.name}</h3>
                       <p className="text-muted-foreground text-sm mt-1 font-mono">
                         ${Number(product.price).toFixed(0)}
+                        {isPreorder && <span className="ml-2 text-amber-500 text-[10px] font-bold">PREORDER</span>}
                       </p>
                     </div>
                   </Link>

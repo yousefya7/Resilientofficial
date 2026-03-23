@@ -82,6 +82,11 @@ export default function CartPage() {
                         Size: <span className="text-accent-blue font-bold">{item.size}</span>
                       </p>
                       <p className="text-sm font-mono mt-1">${Number(item.price).toFixed(0)}</p>
+                      {item.preorder && (
+                        <p className="text-amber-500 text-[10px] font-bold font-mono mt-1 tracking-wide" data-testid={`badge-preorder-cart-${item.productId}`}>
+                          ⚠ PREORDER — Ships ~{item.preorderTimeframe || "4-6 weeks"}
+                        </p>
+                      )}
                     </div>
                   </div>
 

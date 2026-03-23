@@ -415,7 +415,14 @@ ${allPages
         const resolvedItems = await Promise.all(
           (items as OrderItem[]).map(async (item) => {
             const product = await storage.getProduct(item.productId);
-            return { name: product?.name || "Item", size: item.size, quantity: item.quantity, price: Number(item.price) };
+            return {
+              name: product?.name || "Item",
+              size: item.size,
+              quantity: item.quantity,
+              price: Number(item.price),
+              preorder: product?.preorder ?? false,
+              preorderTimeframe: product?.preorderTimeframe || "4-6 weeks",
+            };
           })
         );
 
@@ -423,11 +430,10 @@ ${allPages
         // if (customerPhone) {
         //   await sendOrderConfirmationSms(customerPhone, customerName, order.id, total);
         // }
-        const preorderSettingRow = await pool.query("SELECT value FROM site_settings WHERE key = 'preorder_mode'");
-        const isPreorder = preorderSettingRow.rows[0]?.value === "true";
-        const preorderTimeframeRow = await pool.query("SELECT value FROM site_settings WHERE key = 'preorder_timeframe'");
-        const preorderTimeframe = preorderTimeframeRow.rows[0]?.value || "4-6 weeks";
-        await sendOrderConfirmationEmail(customerEmail, customerName, order.id, resolvedItems, total, shippingAddress as ShippingAddress, { isPreorder, timeframe: preorderTimeframe });
+        const preorderItems = resolvedItems.filter((i) => i.preorder);
+        const hasPreorder = preorderItems.length > 0;
+        const preorderTimeframe = preorderItems.length > 0 ? preorderItems[0].preorderTimeframe : "4-6 weeks";
+        await sendOrderConfirmationEmail(customerEmail, customerName, order.id, resolvedItems, total, shippingAddress as ShippingAddress, { isPreorder: hasPreorder, timeframe: preorderTimeframe });
       } catch (e) {
         console.error("[Notifications] Order confirmation error:", e);
       }
@@ -636,6 +642,8 @@ ${allPages
       preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
       galleryImages,
       newArrivalsIds,
+      collectionImage: settings.collection_image || "",
+      collectionHeading: settings.collection_heading || "THE COLLECTION",
     });
   });
 
@@ -683,11 +691,13 @@ ${allPages
       preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
       galleryImages,
       newArrivalsIds,
+      collectionImage: settings.collection_image || "",
+      collectionHeading: settings.collection_heading || "THE COLLECTION",
     });
   });
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
-    const { maintenanceMode, sitePassword, preorderMode, preorderTimeframe, preorderMessage, galleryImages, newArrivalsIds } = req.body;
+    const { maintenanceMode, sitePassword, preorderMode, preorderTimeframe, preorderMessage, galleryImages, newArrivalsIds, collectionImage, collectionHeading } = req.body;
     if (typeof maintenanceMode === "boolean") {
       await pool.query(
         "INSERT INTO site_settings (key, value) VALUES ('maintenance_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
@@ -740,6 +750,18 @@ ${allPages
         [JSON.stringify(newArrivalsIds)]
       );
     }
+    if (typeof collectionImage === "string") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('collection_image', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [collectionImage.trim()]
+      );
+    }
+    if (typeof collectionHeading === "string") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('collection_heading', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [collectionHeading.trim()]
+      );
+    }
     const result = await pool.query("SELECT key, value FROM site_settings");
     const settings: Record<string, string> = {};
     result.rows.forEach((r: any) => { settings[r.key] = r.value; });
@@ -767,6 +789,8 @@ ${allPages
       preorderMessage: settings.preorder_message || "⚠️ PREORDER — Ships in {timeframe}",
       galleryImages: galleryImagesOut,
       newArrivalsIds: newArrivalsIdsOut,
+      collectionImage: settings.collection_image || "",
+      collectionHeading: settings.collection_heading || "THE COLLECTION",
     });
   });
 

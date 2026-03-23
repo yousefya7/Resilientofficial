@@ -154,7 +154,7 @@ export async function sendOrderConfirmationEmail(
   to: string,
   customerName: string,
   orderId: string,
-  items: { name: string; size: string; quantity: number; price: number }[],
+  items: { name: string; size: string; quantity: number; price: number; preorder?: boolean; preorderTimeframe?: string }[],
   total: string,
   shippingAddress?: { street?: string; city?: string; state?: string; zip?: string },
   preorder?: { isPreorder: boolean; timeframe: string }
@@ -170,6 +170,7 @@ export async function sendOrderConfirmationEmail(
           ${i.name}
           <br/>
           <span style="font-size:11px;font-weight:400;color:#666;">Size: ${i.size} &nbsp;·&nbsp; Qty: ${i.quantity}</span>
+          ${i.preorder ? `<br/><span style="font-size:11px;font-weight:700;color:#f59e0b;">⚠️ PREORDER — Ships in ~${i.preorderTimeframe || "4-6 weeks"}</span>` : ""}
         </td>
         <td style="padding:14px 0;border-bottom:1px solid #1e1e1e;text-align:right;font-size:13px;font-weight:700;color:#0080ff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
           $${(i.price * i.quantity).toFixed(2)}
@@ -182,14 +183,20 @@ export async function sendOrderConfirmationEmail(
     ? [shippingAddress.street, shippingAddress.city, shippingAddress.state, shippingAddress.zip].filter(Boolean).join(", ")
     : "—";
 
-  const preorderBlock = preorder?.isPreorder ? `
+  const preorderItems = items.filter((i) => i.preorder);
+  const hasPreorderItems = preorderItems.length > 0;
+
+  const preorderBlock = hasPreorderItems ? `
     <!-- Preorder Notice -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
       <tr>
         <td style="background-color:#7c3d00;border:2px solid #f59e0b;padding:16px 20px;">
           <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#f59e0b;font-weight:700;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">⚠️ Preorder Notice</p>
           <p style="margin:0;font-size:14px;color:#ffffff;font-weight:700;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-            This is a preorder — your items will ship in approximately <strong>${preorder.timeframe}</strong>.
+            ${preorderItems.length === 1
+              ? `<strong>${preorderItems[0].name}</strong> is a preorder item — estimated ship time: <strong>${preorderItems[0].preorderTimeframe || "4-6 weeks"}</strong>.`
+              : `${preorderItems.length} items in your order are preorders: ${preorderItems.map(i => `<strong>${i.name}</strong> (~${i.preorderTimeframe || "4-6 weeks"})`).join(", ")}.`
+            }
           </p>
           <p style="margin:8px 0 0;font-size:12px;color:#fcd34d;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
             We'll send you a shipping confirmation email as soon as your order is on its way.
