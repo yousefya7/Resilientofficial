@@ -976,6 +976,13 @@ ${allPages
         if (updates.featured !== undefined) {
           updateData.featured = updates.featured;
         }
+        if (updates.preorderAction === "enable") {
+          updateData.preorder = true;
+          if (updates.preorderTimeframe) updateData.preorderTimeframe = updates.preorderTimeframe;
+          if (updates.preorderMessage !== undefined) updateData.preorderMessage = updates.preorderMessage;
+        } else if (updates.preorderAction === "disable") {
+          updateData.preorder = false;
+        }
         if (updates.priceAction && updates.priceValue !== undefined) {
           const currentPrice = parseFloat(existing.price);
           const value = parseFloat(updates.priceValue);

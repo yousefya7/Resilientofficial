@@ -11,7 +11,6 @@ import type { ProductWithStock } from "@shared/schema";
 import { useAudio } from "@/lib/audio";
 import { useSEO } from "@/hooks/use-seo";
 import { usePublicSettings } from "@/hooks/use-public-settings";
-import { PreorderBanner } from "@/components/preorder-banner";
 
 export default function Home() {
   useSEO({
@@ -69,8 +68,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-home">
-      <PreorderBanner />
-
       <section ref={heroRef} className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <motion.div className="absolute inset-0" style={{ y: heroY, scale: heroScale }}>
           <img

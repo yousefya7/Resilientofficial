@@ -77,7 +77,7 @@ type AdminData = {
 import { PromoCodesTab } from "./PromoCodesTab";
 import { NewArrivalsTab } from "./NewArrivalsTab";
 
-type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings" | "contacts" | "new-arrivals" | "preorder" | "gallery" | "site-settings";
+type Tab = "overview" | "inventory" | "customers" | "orders" | "categories" | "marketing" | "promo" | "settings" | "contacts" | "new-arrivals" | "gallery" | "site-settings";
 
 type NavItem = { id: Tab; label: string; icon: React.ElementType };
 type NavGroup = { label: string; items: NavItem[] };
@@ -109,7 +109,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Store",
     items: [
-      { id: "preorder", label: "Preorder Mode", icon: AlertTriangle },
       { id: "gallery", label: "Homepage Images", icon: Image },
       { id: "site-settings", label: "General Settings", icon: Shield },
     ],
@@ -708,6 +707,9 @@ type MassEditForm = {
   priceAction: string;
   priceValue: string;
   stockEdits: StockEdit[];
+  preorderAction: "" | "enable" | "disable";
+  preorderTimeframe: string;
+  preorderMessage: string;
 };
 
 const EMPTY_MASS_EDIT: MassEditForm = {
@@ -717,6 +719,9 @@ const EMPTY_MASS_EDIT: MassEditForm = {
   priceAction: "",
   priceValue: "",
   stockEdits: [],
+  preorderAction: "",
+  preorderTimeframe: "4-6 weeks",
+  preorderMessage: "",
 };
 
 function MassEditModal({
@@ -747,6 +752,13 @@ function MassEditModal({
     if (validStockEdits.length > 0) {
       updates.stockEdits = validStockEdits;
     }
+    if (form.preorderAction === "enable") {
+      updates.preorder = true;
+      updates.preorderTimeframe = form.preorderTimeframe || "4-6 weeks";
+      updates.preorderMessage = form.preorderMessage || "";
+    } else if (form.preorderAction === "disable") {
+      updates.preorder = false;
+    }
     if (Object.keys(updates).length === 0) return;
     onSubmit(updates);
   };
@@ -766,7 +778,7 @@ function MassEditModal({
   };
 
   const validStockEdits = form.stockEdits.filter((se) => se.size && se.action && se.value);
-  const hasChanges = form.category || form.active !== "" || form.featured !== "" || (form.priceAction && form.priceValue) || validStockEdits.length > 0;
+  const hasChanges = form.category || form.active !== "" || form.featured !== "" || (form.priceAction && form.priceValue) || validStockEdits.length > 0 || form.preorderAction !== "";
 
   return (
     <motion.div
@@ -928,6 +940,52 @@ function MassEditModal({
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* Preorder Bulk Action */}
+          <div className={`border-2 p-4 transition-colors ${form.preorderAction !== "" ? "border-amber-500/50 bg-amber-500/5" : "border-border/30"}`}>
+            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground mb-3 block">Preorder Status</label>
+            <select
+              value={form.preorderAction}
+              onChange={(e) => setForm({ ...form, preorderAction: e.target.value as MassEditForm["preorderAction"] })}
+              className="w-full bg-transparent border-2 border-input px-3 py-2 text-sm font-mono h-10 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              data-testid="select-mass-preorder-action"
+            >
+              <option value="">— No Change —</option>
+              <option value="enable">Enable Preorder on All Selected</option>
+              <option value="disable">Remove Preorder from All Selected</option>
+            </select>
+
+            {form.preorderAction === "enable" && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <label className="text-[10px] font-mono tracking-luxury uppercase text-amber-400/80 mb-1 block">Estimated Shipping Timeframe</label>
+                  <Input
+                    value={form.preorderTimeframe}
+                    onChange={(e) => setForm({ ...form, preorderTimeframe: e.target.value })}
+                    placeholder="e.g. 4-6 weeks"
+                    className="border-2 border-amber-500/40 font-mono text-sm h-9 text-white bg-transparent focus:border-amber-500"
+                    data-testid="input-mass-preorder-timeframe"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-mono tracking-luxury uppercase text-amber-400/80 mb-1 block">Preorder Message (optional)</label>
+                  <Input
+                    value={form.preorderMessage}
+                    onChange={(e) => setForm({ ...form, preorderMessage: e.target.value })}
+                    placeholder="Ships in {timeframe} — custom note"
+                    className="border-2 border-amber-500/40 font-mono text-sm h-9 text-white bg-transparent focus:border-amber-500"
+                    data-testid="input-mass-preorder-message"
+                  />
+                </div>
+              </div>
+            )}
+
+            {form.preorderAction === "disable" && (
+              <p className="text-[10px] text-amber-400/70 font-mono mt-2">
+                ⚠ Preorder will be turned OFF for all selected products.
+              </p>
+            )}
           </div>
         </div>
 
@@ -1449,12 +1507,12 @@ export default function AdminDashboard() {
                   View Orders
                 </button>
                 <button
-                  onClick={() => setTab("preorder")}
+                  onClick={() => setTab("gallery")}
                   className="flex items-center gap-2 px-3 py-2.5 border-2 border-border/40 hover:border-accent-blue/60 hover:bg-accent-blue/5 transition-colors text-xs font-mono tracking-luxury uppercase text-muted-foreground hover:text-foreground"
-                  data-testid="button-quick-preorder"
+                  data-testid="button-quick-gallery"
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  Preorder
+                  <Image className="w-3.5 h-3.5 text-accent-blue" />
+                  Gallery
                 </button>
                 <button
                   onClick={() => setTab("marketing")}
@@ -1669,6 +1727,12 @@ export default function AdminDashboard() {
                                   <div className="min-w-0">
                                     <p className="text-sm font-bold uppercase leading-tight">{product.name}</p>
                                     <p className="text-muted-foreground text-xs font-mono">${Number(product.price).toFixed(0)}</p>
+                                    {/* Preorder badge */}
+                                    {(product as any).preorder && (
+                                      <span className="inline-flex items-center gap-1 mt-0.5 text-[9px] font-bold font-mono tracking-luxury uppercase bg-amber-500/20 text-amber-400 border border-amber-500/50 px-1.5 py-0.5" data-testid={`badge-preorder-${product.id}`}>
+                                        ⚠ PREORDER · {(product as any).preorderTimeframe || "4-6 weeks"}
+                                      </span>
+                                    )}
                                     {/* Stripe sync status */}
                                     {product.stripeSyncError ? (
                                       <span
@@ -2371,7 +2435,6 @@ export default function AdminDashboard() {
         {tab === "promo" && <PromoCodesTab />}
 
         {tab === "settings" && <SettingsPanel section="all" />}
-        {tab === "preorder" && <SettingsPanel section="preorder" />}
         {tab === "gallery" && <SettingsPanel section="gallery" />}
         {tab === "site-settings" && <SettingsPanel section="site-settings" />}
         </div>
@@ -3187,11 +3250,6 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
 
-  // Preorder state
-  const [preorderMode, setPreorderMode] = useState(false);
-  const [preorderTimeframe, setPreorderTimeframe] = useState("4-6 weeks");
-  const [preorderMessage, setPreorderMessage] = useState("⚠️ PREORDER — Ships in {timeframe}");
-  const [preorderDirty, setPreorderDirty] = useState(false);
 
   // Gallery state
   const [galleryImages, setGalleryImages] = useState<string[]>(Array(8).fill(""));
@@ -3207,9 +3265,6 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
   const { data: settings, isLoading } = useQuery<{
     maintenanceMode: boolean;
     sitePassword: string;
-    preorderMode: boolean;
-    preorderTimeframe: string;
-    preorderMessage: string;
     galleryImages: string[];
     newArrivalsIds: string[];
     collectionImage: string;
@@ -3230,7 +3285,6 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
         setPasswordInput(data.sitePassword);
         setPasswordDirty(false);
       }
-      setPreorderDirty(false);
       setGalleryDirty(false);
       setCollectionDirty(false);
       toast({ title: "Settings Updated", description: "Changes saved successfully." });
@@ -3245,14 +3299,6 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
       setPasswordInput(settings.sitePassword);
     }
   }, [settings?.sitePassword, passwordDirty]);
-
-  useEffect(() => {
-    if (settings && !preorderDirty) {
-      setPreorderMode(settings.preorderMode ?? false);
-      setPreorderTimeframe(settings.preorderTimeframe || "4-6 weeks");
-      setPreorderMessage(settings.preorderMessage || "⚠️ PREORDER — Ships in {timeframe}");
-    }
-  }, [settings?.preorderMode, settings?.preorderTimeframe, settings?.preorderMessage, preorderDirty]);
 
   useEffect(() => {
     if (settings?.galleryImages && !galleryDirty) {
@@ -3323,98 +3369,6 @@ function SettingsPanel({ section = "all" }: { section?: "all" | "preorder" | "ga
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Preorder Mode */}
-      <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-preorder" style={{ display: section !== "all" && section !== "preorder" ? "none" : undefined }}>
-        <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
-          <h3 className="font-display text-sm tracking-luxury uppercase">Preorder Mode</h3>
-          <div className={`ml-auto flex items-center gap-2 text-[10px] font-mono tracking-luxury uppercase ${preorderMode ? "text-amber-400" : "text-muted-foreground/50"}`}>
-            <div className={`w-2 h-2 ${preorderMode ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
-            {preorderMode ? "ACTIVE" : "OFF"}
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-1">
-                Preorder Mode
-              </label>
-              <p className="text-[11px] text-muted-foreground/60 font-mono">
-                {preorderMode
-                  ? "Preorder banners are visible on product pages, cart, and checkout."
-                  : "Preorder is off — no banners are shown."}
-              </p>
-            </div>
-            <button
-              onClick={() => { setPreorderMode(!preorderMode); setPreorderDirty(true); }}
-              className={`relative w-14 h-7 border-2 transition-all duration-300 flex items-center ${
-                preorderMode
-                  ? "bg-amber-400/20 border-amber-400"
-                  : "bg-muted/20 border-border"
-              }`}
-              data-testid="toggle-preorder-mode"
-            >
-              <div
-                className={`w-5 h-5 transition-all duration-300 ${
-                  preorderMode
-                    ? "ml-[26px] bg-amber-400"
-                    : "ml-0.5 bg-muted-foreground/40"
-                }`}
-              />
-            </button>
-          </div>
-
-          <div>
-            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
-              Shipping Timeframe
-            </label>
-            <Input
-              value={preorderTimeframe}
-              onChange={(e) => { setPreorderTimeframe(e.target.value); setPreorderDirty(true); }}
-              placeholder="e.g. 4-6 weeks"
-              className="border-2 font-mono text-sm h-10 text-white bg-transparent max-w-xs"
-              data-testid="input-preorder-timeframe"
-            />
-            <p className="text-[10px] text-muted-foreground/50 font-mono mt-1">
-              Use &#123;timeframe&#125; in the message below to insert this value.
-            </p>
-          </div>
-
-          <div>
-            <label className="text-xs font-mono tracking-luxury uppercase text-muted-foreground block mb-2">
-              Preorder Message
-            </label>
-            <Input
-              value={preorderMessage}
-              onChange={(e) => { setPreorderMessage(e.target.value); setPreorderDirty(true); }}
-              placeholder="⚠️ PREORDER — Ships in {timeframe}"
-              className="border-2 font-mono text-sm h-10 text-white bg-transparent"
-              data-testid="input-preorder-message"
-            />
-            {preorderMode && (
-              <div className="mt-2 bg-amber-400/10 border border-amber-400/30 px-3 py-2">
-                <p className="text-xs text-amber-400 font-mono">
-                  Preview: {preorderMessage.replace("{timeframe}", preorderTimeframe)}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t-2 border-border/20 pt-4 flex justify-end">
-            <Button
-              onClick={() => settingsMutation.mutate({ preorderMode, preorderTimeframe, preorderMessage })}
-              disabled={settingsMutation.isPending || !preorderDirty}
-              className="text-[10px] tracking-luxury uppercase h-10 border-2 border-amber-500 bg-amber-500 text-black btn-liquid no-default-hover-elevate no-default-active-elevate font-bold"
-              data-testid="button-save-preorder"
-            >
-              {settingsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
-              Save Preorder Settings
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Gallery Images */}
       <div className="border-2 border-border/30 bg-[hsl(0_0%_5%)]" data-testid="section-gallery-images" style={{ display: section !== "all" && section !== "gallery" ? "none" : undefined }}>
         <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-border/30 bg-[hsl(0_0%_6%)]">
