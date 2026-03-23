@@ -1,0 +1,57 @@
+Here's your prompt:
+
+"Every time the project is updated or redeployed, deleted products keep reappearing in the products tab and on the website. This is a critical bug that needs to be fixed permanently. Here are the requirements:
+
+Find the root cause:
+
+There is likely a seed file, initial data file, or database initialization script that is running every time the server starts or redeploys
+This script is probably repopulating the database with a hardcoded list of default products every time it runs
+Find every file that contains product data or a seed/init function and check if it is being called on server startup
+
+
+Fix the seed/init script:
+
+Find the seed file or database initialization script (likely named something like seed.js, init.js, initDB.js, populateDB.js, or similar)
+Change it so it only runs if the products table/collection is completely empty
+Add a check like:
+
+
+
+     const existingProducts = await Product.countDocuments()
+     if (existingProducts === 0) {
+         // run seed
+     } else {
+         // skip seed, data already exists
+     }
+
+This way it only seeds on a brand new empty database and never overwrites existing data
+
+
+Remove all deleted products permanently:
+
+Make sure deleted products are actually being hard deleted from the database and not just soft deleted or hidden with a flag
+Check if deleted products have a deleted: true flag that is being reset on each restart — if so convert to actual hard deletes
+Go through the database right now and permanently remove every product that has been deleted or marked as deleted
+
+
+Prevent reseeding on every deploy:
+
+Remove any automatic seed call from the server startup code
+If seeding is needed for a fresh install, make it a manual script that has to be deliberately run, not something that runs automatically every time the server starts
+
+
+Add a deleted products safeguard:
+
+Keep a record of deliberately deleted product IDs so even if the seed script somehow runs again those specific products are never recreated
+Store deleted product IDs in the database with a permanentlyDeleted flag
+
+
+Test after fixing:
+
+Delete a test product
+Restart/redeploy the server
+Verify the deleted product does not come back
+Verify all existing products remain intact
+
+
+Do not change any existing product management or storefront functionality — only fix the reseeding bug"**

@@ -1,15 +1,8 @@
 import { storage } from "./storage";
 import { db } from "./db";
 import { products, stock, categories } from "@shared/schema";
-import { inArray, eq } from "drizzle-orm";
-
-const PLACEHOLDER_NAMES = [
-  "Phantom Hoodie",
-  "Void Tee",
-  "Apex Cargo",
-  "Shadow Bomber",
-  "Essential Tee II",
-];
+import { inArray } from "drizzle-orm";
+import { pool } from "./db";
 
 const REAL_PRODUCTS = [
   {
@@ -117,108 +110,116 @@ const REAL_PRODUCTS = [
   },
 ];
 
+const PLACEHOLDER_NAMES = [
+  "Phantom Hoodie",
+  "Void Tee",
+  "Apex Cargo",
+  "Shadow Bomber",
+  "Essential Tee II",
+];
+
 export async function seedDatabase() {
-  const existing = await db.select().from(products);
-
-  const hasPlaceholders = existing.some((p) => PLACEHOLDER_NAMES.includes(p.name));
-  const hasRealProducts = existing.some((p) => p.name === "Rhinestone Jacket");
-
-  if (hasRealProducts && !hasPlaceholders) {
-    // Already seeded with real products — update images to Cloudinary if still using /uploads/
-    const needsImageUpdate = existing.some((p) =>
-      (p.images || []).some((img: string) => img.startsWith("/uploads/"))
-    );
-    if (needsImageUpdate) {
-      console.log("Updating product images to Cloudinary URLs...");
-      for (const seedProduct of REAL_PRODUCTS) {
-        const match = existing.find((p) => p.name === seedProduct.name);
-        if (match) {
-          await db.update(products)
-            .set({ images: seedProduct.images })
-            .where(eq(products.id, match.id));
-        }
-      }
-      console.log("Product images updated to Cloudinary.");
-    }
+  // Check permanent seeded flag — if set, never reseed regardless of product state.
+  // This flag is written once to site_settings after the first successful seed
+  // and is never cleared, so deleting products will never trigger a reseed.
+  const flagRow = await pool.query(
+    "SELECT value FROM site_settings WHERE key = 'db_seeded'"
+  );
+  if (flagRow.rows.length > 0 && flagRow.rows[0].value === "true") {
+    console.log("[seed] Database already seeded — skipping.");
     return;
   }
 
-  if (hasPlaceholders) {
-    console.log("Detected placeholder products — replacing with real Resilient catalog...");
-    const placeholderIds = existing
-      .filter((p) => PLACEHOLDER_NAMES.includes(p.name))
-      .map((p) => p.id);
-    if (placeholderIds.length > 0) {
-      await db.delete(stock).where(inArray(stock.productId, placeholderIds));
-      await db.delete(products).where(inArray(products.id, placeholderIds));
+  const existing = await db.select().from(products);
+
+  // Remove leftover placeholder products from initial development if present
+  const placeholderIds = existing
+    .filter((p) => PLACEHOLDER_NAMES.includes(p.name))
+    .map((p) => p.id);
+
+  if (placeholderIds.length > 0) {
+    console.log("[seed] Removing placeholder products...");
+    await db.delete(stock).where(inArray(stock.productId, placeholderIds));
+    await db.delete(products).where(inArray(products.id, placeholderIds));
+  }
+
+  // Only insert real products if the table is empty (fresh install)
+  const remaining = await db.select().from(products);
+  if (remaining.length === 0) {
+    console.log("[seed] Empty database — seeding Resilient catalog...");
+
+    const existingCats = await db.select().from(categories);
+    const catMap: Record<string, string> = {};
+    for (const c of existingCats) {
+      catMap[c.slug] = c.id;
     }
-  } else {
-    console.log("Empty database — seeding Resilient catalog...");
-  }
 
-  const existingCats = await db.select().from(categories);
-  const catMap: Record<string, string> = {};
-  for (const c of existingCats) {
-    catMap[c.slug] = c.id;
-  }
-
-  const needed = [
-    { name: "Jackets", slug: "jackets" },
-    { name: "Tees", slug: "tees" },
-  ];
-  for (const cat of needed) {
-    if (!catMap[cat.slug]) {
-      const created = await storage.createCategory(cat);
-      catMap[cat.slug] = created.id;
-    }
-  }
-
-  for (const p of REAL_PRODUCTS) {
-    const { stock: stockData, ...productFields } = p;
-    const product = await storage.createProduct(productFields);
-    for (const [size, quantity] of Object.entries(stockData)) {
-      await storage.createStock({ productId: product.id, size, quantity });
-    }
-  }
-
-  const existingCustomers = await storage.getCustomers();
-  if (existingCustomers.length === 0) {
-    const customerData = [
-      {
-        email: "marcus.chen@gmail.com",
-        name: "Marcus Chen",
-        phone: "+1-555-0101",
-        totalSpent: "720",
-        lastPurchase: new Date("2026-02-15"),
-        smsSubscribed: true,
-      },
-      {
-        email: "aria.johnson@icloud.com",
-        name: "Aria Johnson",
-        phone: "+1-555-0102",
-        totalSpent: "195",
-        lastPurchase: new Date("2025-12-01"),
-        smsSubscribed: true,
-      },
-      {
-        email: "jaylen.williams@outlook.com",
-        name: "Jaylen Williams",
-        phone: "+1-555-0103",
-        totalSpent: "0",
-        smsSubscribed: true,
-      },
-      {
-        email: "sofia.martinez@gmail.com",
-        name: "Sofia Martinez",
-        totalSpent: "550",
-        lastPurchase: new Date("2026-03-01"),
-        smsSubscribed: false,
-      },
+    const needed = [
+      { name: "Jackets", slug: "jackets" },
+      { name: "Tees", slug: "tees" },
     ];
-    for (const c of customerData) {
-      await storage.createCustomer(c);
+    for (const cat of needed) {
+      if (!catMap[cat.slug]) {
+        const created = await storage.createCategory(cat);
+        catMap[cat.slug] = created.id;
+      }
     }
+
+    for (const p of REAL_PRODUCTS) {
+      const { stock: stockData, ...productFields } = p;
+      const product = await storage.createProduct(productFields);
+      for (const [size, quantity] of Object.entries(stockData)) {
+        await storage.createStock({ productId: product.id, size, quantity });
+      }
+    }
+
+    const existingCustomers = await storage.getCustomers();
+    if (existingCustomers.length === 0) {
+      const customerData = [
+        {
+          email: "marcus.chen@gmail.com",
+          name: "Marcus Chen",
+          phone: "+1-555-0101",
+          totalSpent: "720",
+          lastPurchase: new Date("2026-02-15"),
+          smsSubscribed: true,
+        },
+        {
+          email: "aria.johnson@icloud.com",
+          name: "Aria Johnson",
+          phone: "+1-555-0102",
+          totalSpent: "195",
+          lastPurchase: new Date("2025-12-01"),
+          smsSubscribed: true,
+        },
+        {
+          email: "jaylen.williams@outlook.com",
+          name: "Jaylen Williams",
+          phone: "+1-555-0103",
+          totalSpent: "0",
+          smsSubscribed: true,
+        },
+        {
+          email: "sofia.martinez@gmail.com",
+          name: "Sofia Martinez",
+          totalSpent: "550",
+          lastPurchase: new Date("2026-03-01"),
+          smsSubscribed: false,
+        },
+      ];
+      for (const c of customerData) {
+        await storage.createCustomer(c);
+      }
+    }
+
+    console.log("[seed] Resilient catalog seeded successfully.");
+  } else {
+    console.log("[seed] Products already present — skipping insert.");
   }
 
-  console.log("Resilient catalog seeded successfully.");
+  // Write the permanent seeded flag so this never runs again
+  await pool.query(
+    "INSERT INTO site_settings (key, value) VALUES ('db_seeded', 'true') ON CONFLICT (key) DO UPDATE SET value = 'true'"
+  );
+  console.log("[seed] db_seeded flag written.");
 }
