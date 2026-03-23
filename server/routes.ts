@@ -209,6 +209,32 @@ ${allPages
     res.json({ authenticated: !!(req.session as any).admin });
   });
 
+  // Image proxy — forces JPEG delivery to work around deleted Cloudinary originals
+  // When originals are deleted, Cloudinary can't serve WebP/AVIF for browsers but JPEG
+  // CDN cache still works. This proxy requests JPEG explicitly.
+  app.get("/api/image-proxy", async (req, res) => {
+    const { url } = req.query;
+    if (!url || typeof url !== "string") return res.status(400).end();
+    if (!url.startsWith("https://res.cloudinary.com/dgawn40ku/")) return res.status(403).end();
+    try {
+      const imgRes = await fetch(url, {
+        headers: {
+          "Accept": "image/jpeg,image/*,*/*",
+          "User-Agent": "ResilientProxy/1.0",
+        },
+      });
+      if (!imgRes.ok) return res.status(imgRes.status).end();
+      const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      const buffer = Buffer.from(await imgRes.arrayBuffer());
+      return res.end(buffer);
+    } catch (e: any) {
+      return res.status(500).end();
+    }
+  });
+
   app.get("/api/products", async (_req, res) => {
     const prods = await storage.getProducts();
     res.json(prods);

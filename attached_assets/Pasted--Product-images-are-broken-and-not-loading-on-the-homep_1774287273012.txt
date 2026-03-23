@@ -1,0 +1,41 @@
+"Product images are broken and not loading on the homepage and shop page for logged out users and in incognito mode. Only one out of four products is showing its image correctly. This is a critical bug. Find and fix the root cause immediately. Here are the requirements:
+
+Find why images are broken:
+
+Check the image URLs stored on the broken products in the database
+The broken products are: Black Diamond Zip-Ups, White Resilient Defines Character T-Shirt, and Black Resilient Defines Character T-Shirt
+Check if these image URLs require authentication to access — if so that is the root cause since logged out users cannot access authenticated URLs
+Check if the images are stored locally on Replit vs cloud storage
+Check if the image URLs are relative paths that do not work in production
+Check browser console for the exact error on the broken images (403, 404, CORS error, etc.)
+
+
+Fix the root cause:
+
+If images are stored locally on Replit migrate them to Cloudinary immediately — Replit local storage is wiped on every redeployment and is not accessible publicly
+If image URLs require an auth token or session to access, change the storage to use public URLs that anyone can access without being logged in
+If image URLs are broken or incorrect, update them with the correct accessible URLs
+All product images must be publicly accessible to anyone without any login or session required
+
+
+Re-upload broken images:
+
+For the three broken products re-upload their images to cloud storage and update the database with the correct public URLs
+Verify each image loads correctly in an incognito window after fixing
+
+
+Fix all product image uploads going forward:
+
+Make sure every image uploaded through the admin panel goes directly to persistent public cloud storage
+The URL saved to the database must always be a fully public accessible URL with no auth required
+Add an image preview in the admin panel that shows whether the image is accessible or broken before saving
+
+
+Scan all products:
+
+After fixing the three known broken products scan every other product in the database for broken image URLs
+Fix any other broken images found
+
+
+Do not change any existing product or storefront functionality — only fix the image loading issue"**
+

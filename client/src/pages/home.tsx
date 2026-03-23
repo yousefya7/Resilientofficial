@@ -11,6 +11,7 @@ import type { ProductWithStock } from "@shared/schema";
 import { useAudio } from "@/lib/audio";
 import { useSEO } from "@/hooks/use-seo";
 import { usePublicSettings } from "@/hooks/use-public-settings";
+import { imgUrl } from "@/lib/utils";
 
 export default function Home() {
   useSEO({
@@ -156,7 +157,7 @@ export default function Home() {
                   <div className="group cursor-pointer" data-testid={`card-new-arrival-${product.id}`}>
                     <div className="aspect-[2/3] bg-muted mb-4 overflow-hidden relative border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300">
                       <img
-                        src={product.images[0]}
+                        src={imgUrl(product.images[0])}
                         alt={product.name}
                         className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
                       />
@@ -184,7 +185,7 @@ export default function Home() {
             <div ref={collectionRef} className="md:col-span-8 relative aspect-[16/9] overflow-hidden group border-2 border-border/50 hover:border-accent-blue/30 transition-colors duration-300">
               <Link href="/shop" className="absolute inset-0 z-10" aria-label="Shop Collection" />
               <motion.img
-                src={publicSettings?.collectionImage || "/images/hero-main.JPG"}
+                src={imgUrl(publicSettings?.collectionImage) || "/images/hero-main.JPG"}
                 alt="The Collection"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-pointer"
                 style={{ y: collectionY }}
@@ -296,7 +297,7 @@ export default function Home() {
                       data-testid={`gallery-teaser-${i}`}
                     >
                       <img
-                        src={imgSrc}
+                        src={imgUrl(imgSrc)}
                         alt={`Gallery image ${i + 1}`}
                         className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
                         loading="lazy"

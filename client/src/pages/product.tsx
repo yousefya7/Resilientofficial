@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart";
 import type { ProductWithStock } from "@shared/schema";
 import { useSEO } from "@/hooks/use-seo";
-import { PreorderBanner } from "@/components/preorder-banner";
+import { imgUrl } from "@/lib/utils";
 
 const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL"];
 
@@ -165,7 +165,6 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-product">
-      <PreorderBanner />
       <div className="max-w-6xl mx-auto px-6 pt-32 pb-24">
         <Link href="/shop">
           <button className="flex items-center gap-2 text-muted-foreground text-xs font-mono tracking-luxury uppercase mb-12 transition-colors hover:text-accent-blue" data-testid="link-back-to-shop">
@@ -194,7 +193,7 @@ export default function ProductPage() {
                     className="aspect-[3/4] bg-muted flex-shrink-0 w-full snap-start border-2 border-border/50 overflow-hidden"
                   >
                     <img
-                      src={img}
+                      src={imgUrl(img)}
                       alt={`${product.name} ${i + 1}`}
                       className="w-full h-full object-cover"
                       data-testid={`img-product-slide-${i}`}
@@ -251,7 +250,7 @@ export default function ProductPage() {
                     }`}
                     data-testid={`button-thumbnail-${i}`}
                   >
-                    <img src={img} alt={`${product?.name || "Product"} — view ${i + 1}`} className="w-full h-full object-cover" draggable={false} loading="lazy" />
+                    <img src={imgUrl(img)} alt={`${product?.name || "Product"} — view ${i + 1}`} className="w-full h-full object-cover" draggable={false} loading="lazy" />
                   </button>
                 ))}
               </div>

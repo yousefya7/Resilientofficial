@@ -5,6 +5,7 @@ import { SplitText, FadeInSection } from "@/components/split-text";
 import { Watermark } from "@/components/watermark";
 import type { ProductWithStock, Category } from "@shared/schema";
 import { useSEO } from "@/hooks/use-seo";
+import { imgUrl } from "@/lib/utils";
 
 function isSoldOut(product: ProductWithStock): boolean {
   if (!product.stock || product.stock.length === 0) return true;
@@ -100,7 +101,7 @@ export default function Shop() {
                     <div className="group cursor-pointer" data-testid={`card-product-${product.id}`}>
                       <div className="aspect-[2/3] bg-muted mb-4 overflow-hidden relative border-2 border-border/50 group-hover:border-accent-blue/50 transition-colors duration-300">
                         <img
-                          src={product.images[0]}
+                          src={imgUrl(product.images[0])}
                           alt={product.name}
                           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${soldOut ? "grayscale-[80%] opacity-60" : ""}`}
                         />
