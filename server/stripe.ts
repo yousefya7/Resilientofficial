@@ -76,6 +76,55 @@ export async function createStripeCoupon(
   return coupon.id;
 }
 
+export async function createStripePromo(
+  code: string,
+  type: "percentage" | "fixed" | "free_shipping",
+  value: number,
+  opts?: { maxRedemptions?: number; expiresAt?: Date }
+): Promise<{ couponId: string; promoCodeId: string }> {
+  const stripe = getStripeClient();
+
+  const couponParams: Stripe.CouponCreateParams = {
+    name: `RESILIENT — ${code.toUpperCase()}`,
+    ...(type === "percentage"
+      ? { percent_off: value }
+      : type === "fixed"
+      ? { amount_off: Math.round(value * 100), currency: "usd" }
+      : { percent_off: 100 }),
+    duration: "once",
+    metadata: { resilient_code: code.toUpperCase() },
+  };
+  const coupon = await stripe.coupons.create(couponParams);
+
+  const promoParams: Stripe.PromotionCodeCreateParams = {
+    coupon: coupon.id,
+    code: code.toUpperCase(),
+    ...(opts?.maxRedemptions ? { max_redemptions: opts.maxRedemptions } : {}),
+    ...(opts?.expiresAt ? { expires_at: Math.floor(opts.expiresAt.getTime() / 1000) } : {}),
+  };
+  const promoCode = await stripe.promotionCodes.create(promoParams);
+
+  return { couponId: coupon.id, promoCodeId: promoCode.id };
+}
+
+export async function deactivateStripePromoCode(promoCodeId: string): Promise<void> {
+  const stripe = getStripeClient();
+  try {
+    await stripe.promotionCodes.update(promoCodeId, { active: false });
+  } catch (e) {
+    console.warn("[Stripe] Could not deactivate promo code:", e);
+  }
+}
+
+export async function reactivateStripePromoCode(promoCodeId: string): Promise<void> {
+  const stripe = getStripeClient();
+  try {
+    await stripe.promotionCodes.update(promoCodeId, { active: true });
+  } catch (e) {
+    console.warn("[Stripe] Could not reactivate promo code:", e);
+  }
+}
+
 export async function deleteStripeCoupon(couponId: string): Promise<void> {
   const stripe = getStripeClient();
   try {

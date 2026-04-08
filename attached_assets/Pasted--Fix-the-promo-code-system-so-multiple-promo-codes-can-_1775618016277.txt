@@ -1,0 +1,84 @@
+"Fix the promo code system so multiple promo codes can be added and make sure everything syncs perfectly with Stripe. Here are the full requirements:
+
+Fix the Promo Code Bug:
+
+Currently only one promo code can be added — find and fix why additional promo codes cannot be created
+Check if there is a unique constraint, a limit, or a bug in the promo code creation logic that is blocking more than one code
+Check if the form resets correctly after saving a promo code so a new one can be created immediately after
+Make sure the database can store multiple promo codes with no limit
+Test creating at least 3 different promo codes after fixing to confirm it works
+
+
+Full Promo Code Management in Dashboard:
+
+Show all existing promo codes in a clean table with:
+
+Code name (e.g. SUMMER20)
+Discount type (percentage or fixed amount)
+Discount value (e.g. 20% or $10 off)
+Minimum order amount if applicable
+Expiry date if applicable
+Usage limit if applicable
+How many times it has been used
+Active or inactive status toggle
+Edit button
+Delete button
+
+
+Add a clear "Create New Promo Code" button at the top
+Creating or editing a promo code opens a modal with all the fields above
+
+
+Stripe Sync for Promo Codes:
+
+Every promo code created in the dashboard must be synced to Stripe as a Coupon and Promotion Code
+Use the Stripe API to create the coupon and promotion code:
+
+Percentage discount → stripe.coupons.create({ percent_off: value, duration: 'once' })
+Fixed amount discount → stripe.coupons.create({ amount_off: valueInCents, currency: 'usd', duration: 'once' })
+Then create a promotion code linked to that coupon: stripe.promotionCodes.create({ coupon: couponId, code: promoCode })
+
+
+Store the Stripe coupon ID and promotion code ID back on the promo code record in the database
+When a promo code is deactivated or deleted in the dashboard, deactivate it in Stripe as well
+When a promo code is edited, update it in Stripe accordingly
+
+
+Checkout — Promo Code Application:
+
+Make sure the promo code field on the checkout page works correctly
+When a customer enters a promo code:
+
+Validate it against Stripe using the promotion code
+Show the discount amount clearly as a line item on the checkout
+Update the total to reflect the discount
+Show an error if the code is invalid, expired, or already used
+
+
+Make sure the discount is applied correctly on the Stripe payment intent so the customer is charged the discounted amount
+Show a green success message when a valid code is applied with the discount amount shown
+
+
+Promo Code Rules:
+
+Support the following promo code options:
+
+Percentage off (e.g. 20% off)
+Fixed amount off (e.g. $10 off)
+Minimum order amount required (e.g. only valid on orders over $50)
+Expiry date (code stops working after this date)
+Usage limit (code can only be used X times total)
+One use per customer limit option
+
+
+Enforce all these rules at checkout and show clear error messages when a code fails validation
+
+
+Error Handling:
+
+If Stripe sync fails when creating a promo code, show an error in the dashboard and do not save the code until it syncs successfully
+If a customer enters an expired or invalid code at checkout show a clear friendly error message
+Log all promo code usage so admin can track which codes are being used and by whom
+
+
+Do not break any existing checkout, payment, or Stripe functionality — only fix and improve the promo code system"**

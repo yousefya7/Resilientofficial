@@ -72,6 +72,7 @@ export const promoCodes = pgTable("promo_codes", {
   minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
   active: boolean("active").default(true).notNull(),
   stripeCouponId: text("stripe_coupon_id"),
+  stripePromoCodeId: text("stripe_promo_code_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

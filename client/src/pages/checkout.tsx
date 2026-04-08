@@ -645,8 +645,15 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-3 border-2 border-green-500/40 bg-green-500/10 px-4 py-3">
                       <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-mono font-bold text-green-400">{promoApplied.code}</p>
-                        <p className="text-xs text-green-400/70 font-mono">{promoApplied.label}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-mono font-bold text-green-400">{promoApplied.code}</p>
+                          <span className="text-xs font-mono text-green-400/70">— {promoApplied.label}</span>
+                        </div>
+                        {promoApplied.discountAmount > 0 && (
+                          <p className="text-sm font-mono font-bold text-green-400 mt-0.5" data-testid="text-promo-savings">
+                            You save −${promoApplied.discountAmount.toFixed(2)}
+                          </p>
+                        )}
                       </div>
                       <button
                         type="button"

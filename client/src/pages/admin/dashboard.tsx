@@ -3499,9 +3499,11 @@ function GalleryManagementPanel() {
   const [deleteTarget, setDeleteTarget] = useState<GalleryImage | null>(null);
   const [localImages, setLocalImages] = useState<GalleryImage[]>([]);
 
-  const { data: images = [], isLoading } = useQuery<GalleryImage[]>({ queryKey: ["/api/gallery"] });
+  const { data: images, isLoading } = useQuery<GalleryImage[]>({ queryKey: ["/api/gallery"] });
 
-  useEffect(() => { setLocalImages(images); }, [images]);
+  useEffect(() => {
+    if (images) setLocalImages(images);
+  }, [images]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -3588,7 +3590,7 @@ function GalleryManagementPanel() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isLoading || (images === undefined && localImages.length === 0) ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-square" />)}
         </div>
