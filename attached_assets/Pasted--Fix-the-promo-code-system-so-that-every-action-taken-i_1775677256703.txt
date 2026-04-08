@@ -1,0 +1,63 @@
+"Fix the promo code system so that every action taken in the dashboard promo tab is perfectly mirrored in Stripe in real time. Here are the full requirements:
+
+Fix the Delete and Recreate Issue:
+
+When a promo code is deleted in the dashboard it must also be fully deleted/deactivated in Stripe immediately
+Currently deleting a promo code in the dashboard is not removing it from Stripe which causes an error when trying to recreate the same code name
+Fix the delete function to:
+
+Find the stored Stripe coupon ID and promotion code ID on the record
+Call Stripe API to deactivate the promotion code: stripe.promotionCodes.update(promoCodeId, { active: false })
+Then delete or archive the coupon in Stripe: stripe.coupons.del(couponId)
+Then delete the record from the database
+
+
+After fixing, the same promo code name should be available to recreate immediately after deletion
+
+
+Full Two Way Sync for Every Promo Action:
+
+Create promo code → Create coupon and promotion code in Stripe, save Stripe IDs to database
+Edit promo code → Update coupon and promotion code in Stripe immediately
+Deactivate promo code → Deactivate promotion code in Stripe immediately
+Reactivate promo code → Reactivate promotion code in Stripe immediately
+Delete promo code → Deactivate and delete from Stripe first, then delete from database
+
+
+Check Stripe Before Creating:
+
+Before creating a new promo code in Stripe check if a promotion code with that name already exists in Stripe
+If it already exists in Stripe but not in the database, either:
+
+Link it to the new database record by saving the existing Stripe ID
+Or deactivate the old one in Stripe and create a fresh one
+
+
+Never throw an error to the admin — handle it automatically behind the scenes
+
+
+Sync Status in Dashboard:
+
+Show a Stripe sync status on each promo code in the dashboard
+Green checkmark if synced with Stripe
+Red warning if out of sync with Stripe
+Add a "Force Sync" button on each promo code to manually trigger a resync if needed
+Add a "Sync All" button at the top of the promo codes section
+
+
+Cleanup:
+
+Go through all existing promo codes in the dashboard and verify each one has a valid Stripe coupon ID and promotion code ID stored
+For any promo code missing a Stripe ID attempt to find and link the existing Stripe record or create a new one
+For any orphaned Stripe coupons that no longer have a matching dashboard record, deactivate them in Stripe
+
+
+Error Handling:
+
+If any Stripe action fails show a clear specific error message in the dashboard
+Never leave the dashboard and Stripe out of sync silently
+Always tell the admin exactly what happened and what to do
+
+
+Do not break any existing promo code, checkout, or Stripe functionality — only fix the sync issues"**
+

@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 
+export type MusicSettings = {
+  enabled: boolean;
+  youtubeUrl: string;
+  loop: boolean;
+  volume: number;
+};
+
 export type PublicSettings = {
   preorderMode: boolean;
   preorderTimeframe: string;
@@ -8,6 +15,7 @@ export type PublicSettings = {
   newArrivalsIds: string[];
   collectionImage: string;
   collectionHeading: string;
+  music: MusicSettings;
 };
 
 export function usePublicSettings() {

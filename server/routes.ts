@@ -670,6 +670,12 @@ ${allPages
       newArrivalsIds,
       collectionImage: settings.collection_image || "",
       collectionHeading: settings.collection_heading || "THE COLLECTION",
+      music: {
+        enabled: settings.music_enabled === "true",
+        youtubeUrl: settings.music_youtube_url || "",
+        loop: settings.music_loop !== "false",
+        volume: parseInt(settings.music_volume || "60", 10),
+      },
     });
   });
 
@@ -719,11 +725,15 @@ ${allPages
       newArrivalsIds,
       collectionImage: settings.collection_image || "",
       collectionHeading: settings.collection_heading || "THE COLLECTION",
+      musicEnabled: settings.music_enabled === "true",
+      musicYoutubeUrl: settings.music_youtube_url || "",
+      musicLoop: settings.music_loop !== "false",
+      musicVolume: parseInt(settings.music_volume || "60", 10),
     });
   });
 
   app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
-    const { maintenanceMode, sitePassword, preorderMode, preorderTimeframe, preorderMessage, galleryImages, newArrivalsIds, collectionImage, collectionHeading } = req.body;
+    const { maintenanceMode, sitePassword, preorderMode, preorderTimeframe, preorderMessage, galleryImages, newArrivalsIds, collectionImage, collectionHeading, musicEnabled, musicYoutubeUrl, musicLoop, musicVolume } = req.body;
     if (typeof maintenanceMode === "boolean") {
       await pool.query(
         "INSERT INTO site_settings (key, value) VALUES ('maintenance_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
@@ -788,6 +798,31 @@ ${allPages
         [collectionHeading.trim()]
       );
     }
+    if (typeof musicEnabled === "boolean") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('music_enabled', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [String(musicEnabled)]
+      );
+    }
+    if (typeof musicYoutubeUrl === "string") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('music_youtube_url', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [musicYoutubeUrl.trim()]
+      );
+    }
+    if (typeof musicLoop === "boolean") {
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('music_loop', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [String(musicLoop)]
+      );
+    }
+    if (typeof musicVolume === "number") {
+      const vol = Math.max(0, Math.min(100, Math.round(musicVolume)));
+      await pool.query(
+        "INSERT INTO site_settings (key, value) VALUES ('music_volume', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [String(vol)]
+      );
+    }
     const result = await pool.query("SELECT key, value FROM site_settings");
     const settings: Record<string, string> = {};
     result.rows.forEach((r: any) => { settings[r.key] = r.value; });
@@ -817,6 +852,10 @@ ${allPages
       newArrivalsIds: newArrivalsIdsOut,
       collectionImage: settings.collection_image || "",
       collectionHeading: settings.collection_heading || "THE COLLECTION",
+      musicEnabled: settings.music_enabled === "true",
+      musicYoutubeUrl: settings.music_youtube_url || "",
+      musicLoop: settings.music_loop !== "false",
+      musicVolume: parseInt(settings.music_volume || "60", 10),
     });
   });
 
