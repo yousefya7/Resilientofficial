@@ -1,0 +1,59 @@
+Here's your prompt:
+
+"The shipping is showing as 'Free' at checkout instead of $6.99. Fix this so the $6.99 flat rate shipping is applied correctly. Here are the requirements:
+
+Find why shipping shows as Free:
+
+Check the checkout/payment intent creation on the backend
+There is likely a shipping_rate not being passed or a free shipping override somewhere in the code
+Check if there is a hardcoded shipping: 0 or shipping: 'free' anywhere in the checkout logic
+Check if the Stripe shipping rate ID is actually being attached to the payment intent or checkout session
+
+
+Apply the Stripe Shipping Rate correctly:
+
+Get the shipping rate ID from the Stripe dashboard (starts with shr_)
+Store it in the .env file as STRIPE_SHIPPING_RATE_ID=shr_xxxxx
+Apply it to every checkout session like this:
+
+
+
+javascript     const session = await stripe.checkout.sessions.create({
+       shipping_rates: ['shr_xxxxx'],
+       // rest of checkout config
+     })
+
+OR if using payment intents directly add shipping as a line item:
+
+javascript     line_items: [
+       ...productItems,
+       {
+         price_data: {
+           currency: 'usd',
+           product_data: { name: 'Standard Shipping (3-5 Business Days)' },
+           unit_amount: 699,
+         },
+         quantity: 1,
+       }
+     ]
+
+Update the order summary display:
+
+Make sure the checkout page order summary on the right side shows 'Shipping — $6.99' not 'Free'
+Make sure the order total correctly adds $6.99 to the subtotal and tax
+The PAY button total should reflect the shipping included
+
+
+Update the tax calculation:
+
+Make sure tax is calculated on the product subtotal only and not on the shipping since shipping was set to Never taxable
+Recalculate the total as: subtotal + tax on products only + $6.99 shipping
+
+
+Save shipping amount on order:
+
+Save the $6.99 shipping charge on every order record in the database
+Display it on the order detail in the admin panel
+
+
+Do not break any existing checkout, tax, or payment functionality — only fix the shipping rate"**

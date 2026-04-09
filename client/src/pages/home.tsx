@@ -215,10 +215,10 @@ export default function Home() {
                 <div className="relative h-full overflow-hidden bg-[#0A0A0A] border-2 border-border/50 flex items-center justify-center p-8">
                   <div className="text-center">
                     <p className="text-xs font-mono tracking-luxury uppercase mb-3 text-accent-blue/60">
-                      Free Shipping
+                      Flat Rate Shipping
                     </p>
                     <p className="font-display text-2xl tracking-luxury uppercase">
-                      $150+
+                      $6.99
                     </p>
                     <p className="text-muted-foreground text-xs font-mono mt-2">
                       On all domestic orders

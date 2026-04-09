@@ -58,6 +58,7 @@ export const orders = pgTable("orders", {
   promoCode: text("promo_code"),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  shippingAmount: decimal("shipping_amount", { precision: 10, scale: 2 }).default("6.99"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

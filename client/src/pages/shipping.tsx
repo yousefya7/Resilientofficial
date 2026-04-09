@@ -1,11 +1,11 @@
 import { useSEO } from "@/hooks/use-seo";
-import { Truck, Clock, Package, MapPin, Mail } from "lucide-react";
+import { Truck, Clock, Package, MapPin, Mail, DollarSign } from "lucide-react";
 
 export default function ShippingPage() {
   useSEO({
     title: "Shipping Info | Resilient Official",
     description:
-      "Resilient Official shipping information — processing times, carriers, estimated delivery windows, and order tracking. Free shipping on all domestic orders.",
+      "Resilient Official shipping information — processing times, carriers, estimated delivery windows, and order tracking. Flat $6.99 standard shipping on all domestic orders.",
   });
 
   return (
@@ -22,6 +22,18 @@ export default function ShippingPage() {
         </p>
 
         <div className="space-y-10">
+          <section className="border-2 border-accent-blue/30 p-8 bg-accent-blue/5">
+            <div className="flex items-start gap-4 mb-4">
+              <DollarSign className="w-5 h-5 text-accent-blue mt-0.5 flex-shrink-0" />
+              <div>
+                <h2 className="font-display text-sm tracking-luxury uppercase mb-3">Shipping Rate</h2>
+                <p className="text-muted-foreground text-sm font-mono leading-relaxed">
+                  All domestic orders ship for a flat rate of <span className="text-white font-bold">$6.99</span>. Shipping is calculated on your product subtotal only — tax is never applied to shipping.
+                </p>
+              </div>
+            </div>
+          </section>
+
           <section className="border-2 border-border/50 p-8">
             <div className="flex items-start gap-4 mb-4">
               <Package className="w-5 h-5 text-accent-blue mt-0.5 flex-shrink-0" />

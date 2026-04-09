@@ -82,9 +82,12 @@ type FormData = {
   zip: string;
 };
 
+const FLAT_RATE_SHIPPING = 6.99;
+
 type Breakdown = {
   discountAmount: number;
   taxAmount: number;
+  shippingAmount: number;
   finalTotal: number;
   appliedPromoCode: string | null;
 };
@@ -147,6 +150,7 @@ function PaymentForm({
         promoCode: breakdown.appliedPromoCode,
         discountAmount: breakdown.discountAmount.toFixed(2),
         taxAmount: breakdown.taxAmount.toFixed(2),
+        shippingAmount: breakdown.shippingAmount.toFixed(2),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       onSuccess();
@@ -365,7 +369,11 @@ function PaymentForm({
           )}
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground font-mono">Shipping</span>
-            <span className="text-muted-foreground text-xs font-mono">Free</span>
+            {breakdown.shippingAmount === 0 ? (
+              <span className="text-green-400 text-xs font-mono">Free</span>
+            ) : (
+              <span className="font-mono">${breakdown.shippingAmount.toFixed(2)}</span>
+            )}
           </div>
           <div className="flex justify-between font-bold text-base pt-2 border-t-2 border-[#333]">
             <span>Total</span>
@@ -421,7 +429,8 @@ export default function CheckoutPage() {
   const [breakdown, setBreakdown] = useState<Breakdown>({
     discountAmount: 0,
     taxAmount: 0,
-    finalTotal: total,
+    shippingAmount: FLAT_RATE_SHIPPING,
+    finalTotal: total + FLAT_RATE_SHIPPING,
     appliedPromoCode: null,
   });
   const [creatingIntent, setCreatingIntent] = useState(false);
@@ -511,6 +520,7 @@ export default function CheckoutPage() {
       setBreakdown({
         discountAmount: Number(data.discountAmount),
         taxAmount: Number(data.taxAmount),
+        shippingAmount: Number(data.shippingAmount ?? FLAT_RATE_SHIPPING),
         finalTotal: Number(data.finalTotal),
         appliedPromoCode: data.appliedPromoCode,
       });
@@ -531,9 +541,11 @@ export default function CheckoutPage() {
     setOrderComplete(true);
   }, [clearCart]);
 
-  // Preview totals on info step
+  // Preview totals on info step (include flat shipping; free_shipping promo waives it)
   const previewDiscount = promoApplied?.discountAmount ?? 0;
-  const previewTotal = total - previewDiscount;
+  const isFreeShippingPromo = promoApplied?.label === "Free shipping";
+  const previewShipping = isFreeShippingPromo ? 0 : FLAT_RATE_SHIPPING;
+  const previewTotal = total - previewDiscount + previewShipping;
 
   if (orderComplete) {
     return (
@@ -796,7 +808,19 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground font-mono">Shipping</span>
-                  <span className="text-muted-foreground text-xs font-mono">Free</span>
+                  {step === "payment" ? (
+                    breakdown.shippingAmount === 0 ? (
+                      <span className="text-green-400 text-xs font-mono">Free</span>
+                    ) : (
+                      <span className="font-mono">${breakdown.shippingAmount.toFixed(2)}</span>
+                    )
+                  ) : (
+                    isFreeShippingPromo ? (
+                      <span className="text-green-400 text-xs font-mono">Free</span>
+                    ) : (
+                      <span className="font-mono">${FLAT_RATE_SHIPPING.toFixed(2)}</span>
+                    )
+                  )}
                 </div>
                 <div className="flex justify-between text-lg font-bold pt-3 border-t-2 border-border/50">
                   <span>Total</span>
@@ -806,7 +830,7 @@ export default function CheckoutPage() {
                 </div>
                 {step === "info" && (
                   <p className="text-[10px] text-muted-foreground/50 font-mono text-right">
-                    Tax calculated at checkout
+                    + Tax calculated at checkout
                   </p>
                 )}
               </div>

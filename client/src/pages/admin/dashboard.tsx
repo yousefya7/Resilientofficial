@@ -2928,6 +2928,13 @@ function OrdersTab({ orders, customers }: { orders: Order[]; customers: Customer
               <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2">
                 <div className="text-right">
                   <p className="text-sm font-mono font-bold">${Number(order.total).toFixed(2)}</p>
+                  {(order as any).shippingAmount !== null && (order as any).shippingAmount !== undefined && (
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      Ship: ${Number((order as any).shippingAmount).toFixed(2)}
+                      {Number((order as any).taxAmount) > 0 && ` · Tax: $${Number((order as any).taxAmount).toFixed(2)}`}
+                      {Number((order as any).discountAmount) > 0 && ` · Disc: −$${Number((order as any).discountAmount).toFixed(2)}`}
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground font-mono">
                     {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
                   </p>

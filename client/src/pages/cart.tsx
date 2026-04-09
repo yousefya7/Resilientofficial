@@ -137,7 +137,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground font-mono">Shipping</span>
-                  <span className="text-xs text-muted-foreground font-mono">Calculated at checkout</span>
+                  <span className="text-xs font-mono">$6.99</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold pt-4 border-t-2 border-border/50">
                   <span>Total</span>

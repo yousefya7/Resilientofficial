@@ -246,6 +246,8 @@ ${allPages
     res.json(product);
   });
 
+  const FLAT_RATE_SHIPPING = 6.99;
+
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
       const { total, promoCode, shippingAddress } = req.body;
@@ -260,6 +262,7 @@ ${allPages
       // Validate and apply promo code
       let discountAmount = 0;
       let appliedPromoCode: string | null = null;
+      let freeShipping = false;
       if (promoCode) {
         const promo = await storage.getPromoCodeByCode(promoCode.trim());
         if (promo && promo.active) {
@@ -273,7 +276,7 @@ ${allPages
             } else if (promo.type === "fixed") {
               discountAmount = Math.min(Number(promo.value), subtotal);
             } else if (promo.type === "free_shipping") {
-              discountAmount = 0; // shipping is already free; tracked for display
+              freeShipping = true;
             }
             appliedPromoCode = promo.code.toUpperCase();
           }
@@ -282,6 +285,7 @@ ${allPages
 
       const discountedSubtotal = subtotal - discountAmount;
 
+      // Tax is calculated on product subtotal only — shipping is non-taxable
       let taxAmount = 0;
       if (shippingAddress?.street && shippingAddress?.city && shippingAddress?.state && shippingAddress?.zip) {
         const taxCents = await calculateTaxAmount(
@@ -296,7 +300,8 @@ ${allPages
         taxAmount = taxCents / 100;
       }
 
-      const finalTotal = discountedSubtotal + taxAmount;
+      const shippingAmount = freeShipping ? 0 : FLAT_RATE_SHIPPING;
+      const finalTotal = discountedSubtotal + taxAmount + shippingAmount;
       const chargeAmount = Math.max(finalTotal, 0.5);
 
       const result = await createPaymentIntent(chargeAmount, {
@@ -308,6 +313,7 @@ ${allPages
         clientSecret: result.clientSecret,
         discountAmount: discountAmount.toFixed(2),
         taxAmount: taxAmount.toFixed(2),
+        shippingAmount: shippingAmount.toFixed(2),
         finalTotal: chargeAmount.toFixed(2),
         appliedPromoCode,
       });
@@ -363,7 +369,7 @@ ${allPages
   });
 
   app.post("/api/orders", async (req, res) => {
-    const { customerEmail, customerName, customerPhone, items, total, shippingAddress, stripePaymentIntentId, promoCode, discountAmount, taxAmount } = req.body;
+    const { customerEmail, customerName, customerPhone, items, total, shippingAddress, stripePaymentIntentId, promoCode, discountAmount, taxAmount, shippingAmount } = req.body;
 
     if (!customerEmail || !customerName || !items || !total || !Array.isArray(items)) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -403,6 +409,7 @@ ${allPages
       promoCode: promoCode || null,
       discountAmount: discountAmount ? Number(discountAmount).toFixed(2) : "0",
       taxAmount: taxAmount ? Number(taxAmount).toFixed(2) : "0",
+      shippingAmount: shippingAmount !== undefined ? Number(shippingAmount).toFixed(2) : "6.99",
     });
 
     const newTotal = Number(customer.totalSpent || 0) + Number(total);
